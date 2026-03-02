@@ -1,0 +1,11 @@
+{
+  "owner": "sunshine-del-ux",
+  "slug": "docker-compose-generator",
+  "displayName": "Docker Compose Generator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772451276563,
+    "commit": null
+  },
+  "history": []
+}
