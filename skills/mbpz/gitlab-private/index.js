@@ -1,28 +1,101 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const http = require('http');
 const https = require('https');
 const url = require('url');
 
-// 读取配置
-const configPath = path.join(__dirname, 'config.json');
-let config = {
-  gitlab_url: process.env.GITLAB_URL || 'http://gitlab.dmall.com',
-  access_token: process.env.GITLAB_TOKEN || null
-};
+// ============ 配置 ============
+const CONFIG_DIR = path.join(__dirname, 'config');
+const USERS_FILE = path.join(CONFIG_DIR, 'users.enc'); // 加密存储的用户 token
+const OAUTH_FILE = path.join(CONFIG_DIR, 'oauth.json');
 
-try {
-  if (fs.existsSync(configPath)) {
-    const fileConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    config = { ...config, ...fileConfig };
+// 加密密钥（必须通过环境变量设置）
+const ENCRYPT_KEY = process.env.GITLAB_ENCRYPT_KEY;
+if (!ENCRYPT_KEY) {
+  console.error('错误：必须设置环境变量 GITLAB_ENCRYPT_KEY 才能使用此工具');
+  console.error('设置方法：export GITLAB_ENCRYPT_KEY=你的密钥（至少32个字符）');
+  process.exit(1);
+}
+
+// ============ 工具函数 ============
+
+// 加密
+function encrypt(text) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPT_KEY.slice(0, 32)), iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return iv.toString('hex') + ':' + encrypted;
+}
+
+// 解密
+function decrypt(text) {
+  try {
+    const parts = text.split(':');
+    const iv = Buffer.from(parts[0], 'hex');
+    const encryptedText = parts[1];
+    const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPT_KEY.slice(0, 32)), iv);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (e) {
+    return null;
   }
-} catch (e) {}
+}
 
-// API 请求封装
-function request(method, endpoint, data = null) {
+// 读取用户配置
+function loadUsers() {
+  if (!fs.existsSync(USERS_FILE)) {
+    return {};
+  }
+  try {
+    const encrypted = fs.readFileSync(USERS_FILE, 'utf8');
+    const decrypted = decrypt(encrypted);
+    return decrypted ? JSON.parse(decrypted) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+// 保存用户配置（加密）
+function saveUsers(users) {
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  }
+  const encrypted = encrypt(JSON.stringify(users));
+  fs.writeFileSync(USERS_FILE, encrypted);
+}
+
+// 读取 OAuth 配置（加密存储）
+function loadOauthConfig() {
+  if (!fs.existsSync(OAUTH_FILE)) {
+    return null;
+  }
+  try {
+    const encrypted = fs.readFileSync(OAUTH_FILE, 'utf8');
+    const decrypted = decrypt(encrypted);
+    return decrypted ? JSON.parse(decrypted) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// 保存 OAuth 配置（加密）
+function saveOauthConfig(config) {
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  }
+  const encrypted = encrypt(JSON.stringify(config));
+  fs.writeFileSync(OAUTH_FILE, encrypted);
+}
+
+// API 请求
+function request(token, method, endpoint, data = null) {
   return new Promise((resolve, reject) => {
-    const parsedUrl = new url.parse(config.gitlab_url + endpoint);
-    const isHttps = config.gitlab_url.startsWith('https');
+    const gitlabUrl = process.env.GITLAB_URL || 'http://gitlab.example.com';
+    const parsedUrl = new url.parse(gitlabUrl + endpoint);
+    const isHttps = gitlabUrl.startsWith('https');
     const lib = isHttps ? https : http;
 
     const options = {
@@ -32,7 +105,7 @@ function request(method, endpoint, data = null) {
       method: method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.access_token}`
+        'Authorization': `Bearer ${token}`
       }
     };
 
@@ -49,7 +122,6 @@ function request(method, endpoint, data = null) {
     });
 
     req.on('error', reject);
-
     if (data) {
       req.write(JSON.stringify(data));
     }
@@ -57,47 +129,92 @@ function request(method, endpoint, data = null) {
   });
 }
 
-// 命令处理
+// ============ 主逻辑 ============
+
 const command = process.argv[2];
+const args = process.argv.slice(3);
 
 async function main() {
   switch (command) {
-    case 'auth':
-      // 生成授权 URL
-      const clientId = process.argv[3];
-      const clientSecret = process.argv[4];
+    case 'auth-url':
+      // 生成授权链接
+      const oauthConfig = loadOauthConfig();
+      if (!oauthConfig) {
+        console.log('错误：请先配置 OAuth 应用: node index.js config <Application ID> <Secret>');
+        process.exit(1);
+      }
       const redirectUri = 'http://localhost/callback';
-      const authUrl = `${config.gitlab_url}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=api`;
-      
-      console.log('请访问以下链接进行授权:');
+      const authUrl = `${oauthConfig.gitlab_url || 'http://gitlab.example.com'}/oauth/authorize?client_id=${oauthConfig.client_id}&redirect_uri=${redirectUri}&response_type=code&scope=api`;
       console.log(authUrl);
-      console.log('\n授权完成后，浏览器会跳转到 http://localhost/callback?code=xxx');
-      console.log('请将 URL 中的 code 参数值复制下来，运行:');
-      console.log(`node index.js token ${clientId} ${clientSecret} <code>`);
       break;
 
-    case 'token':
-      // 交换 token
-      const cid = process.argv[3];
-      const csecret = process.argv[4];
-      const code = process.argv[5];
+    case 'config':
+      // 配置 OAuth 应用
+      const clientId = args[0];
+      const clientSecret = args[1];
+      const gitlabUrl = args[2] || 'http://gitlab.example.com';
       
-      if (!code) {
-        console.log('用法: node index.js token <Application ID> <Secret> <code>');
+      if (!clientId || !clientSecret) {
+        console.log('用法: node index.js config <Application ID> <Secret> [GitLab URL]');
         process.exit(1);
       }
 
+      const configData = {
+        client_id: clientId,
+        client_secret: clientSecret,
+        gitlab_url: gitlabUrl
+      };
+      
+      saveOauthConfig(configData);
+      console.log('✅ OAuth 配置已保存（加密存储）');
+      break;
+
+    case 'handle':
+      // 处理用户发来的授权链接或 code
+      const userId = args[0]; // 用户ID
+      const input = args[1]; // 授权链接或 code
+      
+      if (!input) {
+        console.log('用法: node index.js handle <用户ID> <授权链接或code>');
+        console.log('');
+        console.log('自动识别处理：');
+        console.log('- 如果是完整授权链接，自动提取 code 并换取 token');
+        console.log('- 如果是纯 code，直接换取 token');
+        console.log('- token 加密保存到本地');
+        process.exit(1);
+      }
+
+      // 提取 code
+      let code = input;
+      if (input.includes('code=')) {
+        const urlMatch = input.match(/[?&]code=([a-f0-9]+)/i);
+        if (urlMatch) {
+          code = urlMatch[1];
+          console.log('从授权链接中提取到 code');
+        }
+      }
+
+      // 获取 OAuth 配置
+      const oauth = loadOauthConfig();
+      if (!oauth) {
+        console.log('错误：请先配置 OAuth 应用');
+        process.exit(1);
+      }
+
+      // 换取 token
+      console.log('正在换取 token...');
       const tokenData = await new Promise((resolve, reject) => {
         const postData = new url.URLSearchParams({
-          client_id: cid,
-          client_secret: csecret,
+          client_id: oauth.client_id,
+          client_secret: oauth.client_secret,
           code: code,
           grant_type: 'authorization_code',
           redirect_uri: 'http://localhost/callback'
         }).toString();
 
-        const parsedUrl = new url.parse(config.gitlab_url + '/oauth/token');
-        const isHttps = config.gitlab_url.startsWith('https');
+        const gitlabUrl = oauth.gitlab_url || 'http://gitlab.example.com';
+        const parsedUrl = new url.parse(gitlabUrl + '/oauth/token');
+        const isHttps = gitlabUrl.startsWith('https');
         const lib = isHttps ? https : http;
 
         const options = {
@@ -129,286 +246,122 @@ async function main() {
       });
 
       if (tokenData.access_token) {
-        console.log('授权成功!');
-        console.log('Access Token:', tokenData.access_token);
+        // 获取用户信息
+        const userInfo = await request(tokenData.access_token, 'GET', '/api/v4/user');
         
-        // 保存到配置
-        config.access_token = tokenData.access_token;
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-        console.log('Token 已保存到 config.json');
+        console.log('✅ 授权成功！');
+        console.log(`用户: ${userInfo.name} (${userInfo.username})`);
+        
+        // 保存用户 token（加密）
+        const users = loadUsers();
+        users[userId] = {
+          token: tokenData.access_token,
+          userId: userId,
+          gitlabUser: userInfo.username,
+          name: userInfo.name,
+          updatedAt: new Date().toISOString()
+        };
+        saveUsers(users);
+        
+        console.log(`Token 已加密保存到本地，绑定用户: ${userId}`);
       } else {
-        console.log('授权失败:', tokenData);
+        console.log('❌ 授权失败:', tokenData.error_description || tokenData.msg);
       }
       break;
 
-    case 'list':
-      // 列出仓库
-      if (!config.access_token) {
-        console.log('请先进行授权: node index.js auth <Application ID> <Secret>');
+    case 'use':
+      // 使用指定用户的 token 执行命令
+      const useUserId = args[0];
+      const targetCommand = args[1];
+      const targetArgs = args.slice(2);
+      
+      const users = loadUsers();
+      const userData = users[useUserId];
+      
+      if (!userData || !userData.token) {
+        console.log(`错误：用户 ${useUserId} 未授权，请先运行: node index.js handle ${useUserId} <授权链接>`);
         process.exit(1);
       }
-      
-      const response = await request('GET', '/api/v4/users/891/projects');
-      const projects = Array.isArray(response) ? response : [];
-      console.log('你的仓库:');
-      projects.forEach(p => {
-        console.log(`- ${p.name} (ID: ${p.id})`);
-        console.log(`  ${p.web_url}`);
-      });
+
+      const token = userData.token;
+
+      switch (targetCommand) {
+        case 'list':
+          // 列出仓库
+          const projects = await request(token, 'GET', '/api/v4/users/current/projects');
+          console.log(`用户 ${userData.name} 的仓库:`);
+          (Array.isArray(projects) ? projects : []).forEach(p => {
+            console.log(`- ${p.name} (ID: ${p.id})`);
+          });
+          break;
+
+        case 'project':
+          const keyword = targetArgs[0];
+          const searchResult = await request(token, 'GET', `/api/v4/projects?search=${keyword}`);
+          console.log(`搜索 "${keyword}" 结果:`);
+          (Array.isArray(searchResult) ? searchResult : []).forEach(p => {
+            console.log(`- ${p.name_with_namespace} (ID: ${p.id})`);
+          });
+          break;
+
+        case 'merge':
+          const projectId = targetArgs[0];
+          const branch = targetArgs[1] || 'master';
+          
+          const commits = await request(token, 'GET', `/api/v4/projects/${projectId}/repository/commits?ref_name=${branch}&per_page=10`);
+          const mergeCommit = (Array.isArray(commits) ? commits : []).find(c => c.parent_ids && c.parent_ids.length > 1);
+          
+          if (!mergeCommit) {
+            console.log('未找到合并提交');
+            break;
+          }
+
+          console.log('='.repeat(50));
+          console.log('最后一次合并信息');
+          console.log('='.repeat(50));
+          console.log(`时间: ${mergeCommit.created_at}`);
+          console.log(`作者: ${mergeCommit.author_name}`);
+          console.log(`提交: ${mergeCommit.title}`);
+          
+          const diff = await request(token, 'GET', `/api/v4/projects/${projectId}/repository/commits/${mergeCommit.id}/diff`);
+          console.log('变更文件:');
+          (Array.isArray(diff) ? diff : []).forEach(f => {
+            console.log(`  - ${f.new_path || f.old_path}`);
+          });
+          break;
+
+        default:
+          console.log('用法: node index.js use <用户ID> <命令> [参数]');
+          console.log('命令: list, project <关键词>, merge <项目ID> [分支]');
+      }
       break;
 
-    case 'read':
-      // 读取文件
-      if (!config.access_token) {
-        console.log('请先进行授权: node index.js auth <Application ID> <Secret>');
-        process.exit(1);
-      }
-
-      const projectId = process.argv[3];
-      const filePath = process.argv[4];
-
-      if (!projectId || !filePath) {
-        console.log('用法: node index.js read <项目ID> <文件路径>');
-        console.log('示例: node index.js read 11102 README.md');
-        process.exit(1);
-      }
-
-      const fileData = await request('GET', `/api/v4/projects/${projectId}/repository/files/${encodeURIComponent(filePath)}?ref=master`);
-      
-      if (fileData.content) {
-        const content = Buffer.from(fileData.content, 'base64').toString('utf8');
-        console.log(content);
-      } else {
-        console.log('文件读取失败:', fileData.message || fileData);
-      }
-      break;
-
-    case 'merge':
-      // 查看最后一次合并
-      if (!config.access_token) {
-        console.log('请先进行授权: node index.js auth <Application ID> <Secret>');
-        process.exit(1);
-      }
-
-      const mergeProjectId = process.argv[3];
-      const branch = process.argv[4] || 'master';
-
-      if (!mergeProjectId) {
-        console.log('用法: node index.js merge <项目ID> [分支名]');
-        console.log('示例: node index.js merge 10954 master');
-        process.exit(1);
-      }
-
-      // 获取分支最近的提交
-      const commits = await request('GET', `/api/v4/projects/${mergeProjectId}/repository/commits?ref_name=${branch}&per_page=10`);
-      
-      // 找到合并提交（parent_ids 有多个的）
-      const mergeCommit = commits.find(c => c.parent_ids && c.parent_ids.length > 1);
-      
-      if (!mergeCommit) {
-        console.log('未找到合并提交');
-        console.log('最近提交:', commits.slice(0, 3).map(c => c.title).join('\n'));
-        break;
-      }
-
-      // 获取合并提交的详情
-      const mergeDiff = await request('GET', `/api/v4/projects/${mergeProjectId}/repository/commits/${mergeCommit.id}/diff`);
-      
-      console.log('='.repeat(50));
-      console.log('最后一次合并信息');
-      console.log('='.repeat(50));
-      console.log(`合并时间: ${mergeCommit.created_at}`);
-      console.log(`提交者: ${mergeCommit.author_name} (${mergeCommit.author_email})`);
-      console.log(`提交信息: ${mergeCommit.title}`);
-      console.log(`来源分支: (从 ${mergeCommit.parent_ids.length} 个 parent 判断为合并提交)`);
-      console.log('');
-      console.log('变更文件:');
-      mergeDiff.forEach(f => {
-        console.log(`  - ${f.new_path || f.old_path} (${f.new_file ? '新增' : f.deleted_file ? '删除' : '修改'})`);
-      });
-      break;
-
-    case 'project':
-      // 搜索项目
-      if (!config.access_token) {
-        console.log('请先进行授权');
-        process.exit(1);
-      }
-
-      const searchKeyword = process.argv[3];
-      if (!searchKeyword) {
-        console.log('用法: node index.js project <关键词>');
-        process.exit(1);
-      }
-
-      const searchResult = await request('GET', `/api/v4/projects?search=${searchKeyword}`);
-      const searchProjects = Array.isArray(searchResult) ? searchResult : [];
-      
-      console.log(`搜索 "${searchKeyword}" 结果:`);
-      searchProjects.forEach(p => {
-        console.log(`- ${p.name_with_namespace}`);
-        console.log(`  ID: ${p.id}`);
-        console.log(`  地址: ${p.web_url}`);
+    case 'users':
+      // 列出已授权用户
+      const allUsers = loadUsers();
+      console.log('已授权用户:');
+      Object.keys(allUsers).forEach(uid => {
+        const u = allUsers[uid];
+        console.log(`- ${uid}: ${u.name} (@${u.gitlabUser}), 更新时间: ${u.updatedAt}`);
       });
       break;
 
     default:
       console.log(`
-GitLab OAuth Tool
+GitLab Private v0.5.0 - 支持多用户授权
 
 用法:
-  node index.js auth <Application ID> <Secret>     - 生成授权链接
-  node index.js token <ID> <Secret> <code>        - 交换 Access Token
-  node index.js list                                - 列出仓库
-  node index.js read <项目ID> <文件路径>           - 读取文件
+  node index.js config <Application ID> <Secret> [GitLab URL]    - 配置 OAuth 应用
+  node index.js auth-url                                          - 生成授权链接
+  node index.js handle <用户ID> <授权链接或code>                  - 处理授权（核心）
+  node index.js use <用户ID> <命令> [参数]                        - 使用用户 token 执行命令
+  node index.js users                                             - 列出已授权用户
 
-示例:
-  node index.js auth your_app_id your_app_secret
-  node index.js token your_app_id your_app_secret the_code_from_url
-  node index.js list
-  node index.js read 11102 README.md
+命令示例:
+  node index.js use 曾金国 merge 10954 master
+  node index.js use 曾金国 project welfare
+  node index.js use 曾金国 list
 `);
-      break;
-
-    case 'handle':
-      // 处理用户发来的 code 或 token
-      const input = process.argv[3];
-      
-      if (!input) {
-        console.log('用法: node index.js handle <code或token> [用户ID]');
-        console.log('');
-        console.log('自动识别处理：');
-        console.log('- 如果是 OAuth code (40-64位 16进制)，自动换取 token');
-        console.log('- 如果是已存在的 token，直接保存');
-        console.log('- 如果是项目ID，返回项目信息');
-        process.exit(1);
-      }
-
-      // 检查是否是 OAuth 授权链接，包含 code=
-      let code = input;
-      
-      // 如果是完整链接，提取 code
-      if (input.includes('code=')) {
-        const urlMatch = input.match(/[?&]code=([a-f0-9]+)/i);
-        if (urlMatch) {
-          code = urlMatch[1];
-          console.log('从授权链接中提取到 code:', code);
-        }
-      }
-      
-      // 检查是否是 OAuth code (40-64 位 16 进制字符串)
-      const isOAuthCode = /^[a-f0-9]{40,64}$/i.test(code);
-      
-      if (isOAuthCode) {
-        // 尝试换取 token
-        console.log('检测到 OAuth code，正在换取 token...');
-        
-        // 读取 OAuth 配置
-        let clientId, clientSecret;
-        try {
-          const oauthConfig = JSON.parse(fs.readFileSync(path.join(__dirname, 'oauth-config.json'), 'utf8'));
-          clientId = oauthConfig.client_id;
-          clientSecret = oauthConfig.client_secret;
-        } catch (e) {
-          console.log('未找到 OAuth 配置，请先运行: node index.js auth <Application ID> <Secret>');
-          process.exit(1);
-        }
-
-        const tokenData = await new Promise((resolve, reject) => {
-          const postData = new url.URLSearchParams({
-            client_id: clientId,
-            client_secret: clientSecret,
-            code: code,
-            grant_type: 'authorization_code',
-            redirect_uri: 'http://localhost/callback'
-          }).toString();
-
-          const parsedUrl = new url.parse(config.gitlab_url + '/oauth/token');
-          const isHttps = config.gitlab_url.startsWith('https');
-          const lib = isHttps ? https : http;
-
-          const options = {
-            hostname: parsedUrl.hostname,
-            port: parsedUrl.port || (isHttps ? 443 : 80),
-            path: parsedUrl.path,
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Content-Length': Buffer.byteLength(postData)
-            }
-          };
-
-          const req = lib.request(options, (res) => {
-            let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => {
-              try {
-                resolve(JSON.parse(body));
-              } catch (e) {
-                reject(e);
-              }
-            });
-          });
-
-          req.on('error', reject);
-          req.write(postData);
-          req.end();
-        });
-
-        if (tokenData.access_token) {
-          console.log('✅ 授权成功！Token 已保存。');
-          console.log(`Access Token: ${tokenData.access_token.substring(0, 20)}...`);
-          
-          // 保存到配置
-          config.access_token = tokenData.access_token;
-          fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-          console.log('Token 已保存到 config.json');
-          
-          // 验证 token
-          const userInfo = await request('GET', '/api/v4/user');
-          console.log(`授权用户: ${userInfo.name} (${userInfo.username})`);
-        } else {
-          console.log('❌ 授权失败:', tokenData.error_description || tokenData.msg);
-        }
-      } else {
-        // 尝试作为 token 直接使用
-        console.log('尝试作为 Token 使用...');
-        const testResult = await fetch(config.gitlab_url + '/api/v4/user', {
-          headers: { 'Authorization': `Bearer ${input}` }
-        }).then(r => r.json());
-
-        if (testResult.id) {
-          console.log('✅ Token 有效！');
-          console.log(`用户: ${testResult.name} (${testResult.username})`);
-          
-          // 保存 token
-          config.access_token = input;
-          fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-          console.log('Token 已保存到 config.json');
-        } else {
-          console.log('❌ 无效的 Token');
-        }
-      }
-      break;
-
-    case 'config':
-      // 配置 OAuth 应用信息
-      const configClientId = process.argv[3];
-      const configClientSecret = process.argv[4];
-      
-      if (!configClientId || !configClientSecret) {
-        console.log('用法: node index.js config <Application ID> <Secret>');
-        console.log('保存 OAuth 应用配置，用于自动处理群里收到的 code');
-        process.exit(1);
-      }
-
-      const oauthConfig = {
-        client_id: configClientId,
-        client_secret: configClientSecret
-      };
-      fs.writeFileSync(path.join(__dirname, 'oauth-config.json'), JSON.stringify(oauthConfig, null, 2));
-      console.log('✅ OAuth 配置已保存');
-      break;
   }
 }
 
