@@ -62,7 +62,7 @@ ffmpeg -i "*.mp4" -i "*.m4a" -c:v copy -c:a aac -shortest "output.mp4" -y
 ## Parameters / 参数说明
 
 ### yt-dlp Video Download
-- `-f "bestvideo[ext=mp4]"`: Download highest quality video format (video only)
+- `-f "bestvideo"`: Download highest quality video format (may be WebM or MP4)
 - Output template: `%(title)s_video.%(ext)s`
 
 ### yt-dlp Audio Download

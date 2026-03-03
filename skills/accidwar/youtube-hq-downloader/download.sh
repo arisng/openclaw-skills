@@ -35,15 +35,23 @@ else
     YT_DLP="$SCRIPT_DIR/.venv/bin/yt-dlp"
 fi
 
-echo "📥 步骤1: 下载视频(最高清无声版本)..."
-$YT_DLP -f "bestvideo[ext=mp4]" "$URL" -o "$OUTPUT_DIR/${OUTPUT_NAME}_video.%(ext)s"
+echo "📥 Step 1: Downloading video (highest quality)..."
+$YT_DLP -f "bestvideo" "$URL" -o "$OUTPUT_DIR/${OUTPUT_NAME}_video.%(ext)s"
 
 echo "📥 步骤2: 下载音频..."
 $YT_DLP -x --audio-format m4a "$URL" -o "$OUTPUT_DIR/${OUTPUT_NAME}_audio.%(ext)s"
 
-echo "🔧 步骤3: 合并视频和音频..."
+echo "🔧 Step 3: Merging video and audio..."
 cd "$OUTPUT_DIR"
-ffmpeg -i "${OUTPUT_NAME}_video.mp4" -i "${OUTPUT_NAME}_audio.m4a" -c:v copy -c:a aac -shortest "${OUTPUT_NAME}_combined.mp4" -y
+
+# Find the video file (could be .mp4 or .webm)
+VIDEO_FILE=$(ls ${OUTPUT_NAME}_video.* 2>/dev/null | head -1)
+if [ -z "$VIDEO_FILE" ]; then
+    echo "❌ Video file not found!"
+    exit 1
+fi
+
+ffmpeg -i "$VIDEO_FILE" -i "${OUTPUT_NAME}_audio.m4a" -c:v libx264 -c:a aac -shortest "${OUTPUT_NAME}_combined.mp4" -y
 
 # 清理中间文件 (可选)
 rm -f "${OUTPUT_NAME}_video.mp4" "${OUTPUT_NAME}_audio.m4a"

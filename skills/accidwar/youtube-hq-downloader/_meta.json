@@ -3,9 +3,15 @@
   "slug": "youtube-hq-downloader",
   "displayName": "Youtube Hq Downloader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772424359885,
-    "commit": "https://github.com/openclaw/skills/commit/b16937243c143d13c13f0288ed6add894ac2958f"
+    "version": "1.0.1",
+    "publishedAt": 1772424454194,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772424359885,
+      "commit": "https://github.com/openclaw/skills/commit/b16937243c143d13c13f0288ed6add894ac2958f"
+    }
+  ]
 }

@@ -77,8 +77,9 @@ def main():
     if not yt_dlp:
         sys.exit(1)
     
-    print(f"\n📥 步骤1: 下载视频(最高清无声版本)...")
-    cmd1 = f'{yt_dlp} -f "bestvideo[ext=mp4]" "{url}" -o "{video_file}"'
+    print(f"\n📥 Step 1: Downloading video (highest quality)...")
+    # bestvideo without ext filter to get highest quality (may be WebM)
+    cmd1 = f'{yt_dlp} -f "bestvideo" "{url}" -o "{video_file}"'
     if not run_command(cmd1):
         print("❌ 视频下载失败!")
         sys.exit(1)
@@ -89,8 +90,9 @@ def main():
         print("❌ 音频下载失败!")
         sys.exit(1)
     
-    print(f"\n🔧 步骤3: 合并视频和音频...")
-    cmd3 = f'ffmpeg -i "{video_file}" -i "{audio_file}" -c:v copy -c:a aac -shortest "{output_file}" -y'
+    print(f"\n🔧 Step 3: Merging video and audio...")
+    # For WebM videos, need to re-encode; for MP4, can copy
+    cmd3 = f'ffmpeg -i "{video_file}" -i "{audio_file}" -c:v libx264 -c:a aac -shortest "{output_file}" -y'
     if not run_command(cmd3):
         print("❌ 合并失败!")
         sys.exit(1)
