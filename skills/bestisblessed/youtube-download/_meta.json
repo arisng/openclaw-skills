@@ -3,9 +3,15 @@
   "slug": "youtube-download",
   "displayName": "YouTube Downloader",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772495827582,
-    "commit": "https://github.com/openclaw/skills/commit/bf4c4dc615dbaf629f5d46ba6e292a32b0fdff13"
+    "version": "1.0.3",
+    "publishedAt": 1772496138873,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772495827582,
+      "commit": "https://github.com/openclaw/skills/commit/bf4c4dc615dbaf629f5d46ba6e292a32b0fdff13"
+    }
+  ]
 }
