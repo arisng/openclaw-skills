@@ -6,8 +6,9 @@ Fetch YouTube video transcripts from anywhere — even cloud servers where YouTu
 
 - Works from cloud IPs (AWS, GCP, VPS, etc.)
 - Bypasses YouTube bot detection via APIFY proxies
-- **Local caching** — repeat requests are FREE
-- **Batch mode** — process multiple videos at once
+- **Local caching** (v1.1.0+) — repeat requests are FREE
+- **Batch mode** (v1.1.0+) — process multiple videos at once
+- **Cache management** — `--cache-stats`, `--clear-cache`, `--no-cache`
 - Text or JSON output with timestamps
 - Language preference support
 - Simple Python script, no SDK needed
@@ -38,7 +39,7 @@ See [SKILL.md](SKILL.md) for full documentation, setup instructions, and usage e
 - [Get API Key](https://console.apify.com/account/integrations)
 - [YouTube Transcripts Actor](https://apify.com/karamelo/youtube-transcripts)
 
-## ⚙️ Requirements
+## ⚙ Requirements
 
 - Python 3.6+
 - `requests` library (`pip install requests`)
