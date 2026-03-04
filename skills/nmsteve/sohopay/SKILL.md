@@ -20,17 +20,68 @@ The primary way to use this skill is with a natural language command that maps t
 
 ## Workflow
 
-When triggered, the skill's script performs the following actions:
+### Payments (credit spend)
+
+When you issue a `pay` command, the skill performs the following actions:
 
 1. **Parse Inputs**: Extracts the amount and merchant address from the user's request.
 2. **Validate Merchant Address**: Confirms that the merchant is a valid EVM address; otherwise it aborts.
-3. **Pre-Flight Checks**: Before signing, it runs a series of checks to ensure the transaction is likely to succeed:
-    - Verifies the borrower is registered and active.
-    - Checks if the borrower has a sufficient credit limit.
+3. **Pre-Flight Checks** (BorrowerManager):
+    - Verifies the borrower is **registered** and **active**.
+    - Checks if the **credit limit** (agent spend limit) is sufficient for the requested amount.
+    - On demand, can auto-register the agent once via `registerAgent`.
 4. **Generate Authorization**: Creates an EIP-712 typed data message for the payment.
 5. **Sign Off-Chain**: Uses the configured `PRIVATE_KEY` wallet (from environment variables) to sign the authorization message.
 6. **Execute On-Chain**: Calls the `spendWithAuthorization` function on the `Creditor` contract, providing the signed message.
 7. **Report Result**: Returns the transaction hash to the user upon confirmation.
+
+### Status / Profile checks
+
+The `status` helper reads the **BorrowerManager** profile + USDC wallet balance for the bot:
+
+- Calls the `s_borrowerProfiles(address)` public mapping getter to fetch:  
+  `creditLimit, outstandingDebt, totalSpent, totalRepaid, spendingCount, repaymentCount, lastActivityTime, creditScore, isActive, agentSpendLimit`.
+- Calls `IERC20(USDC).balanceOf(bot)` to fetch the **USDC wallet balance** for the same address.
+- Prints a human-readable summary so you can see, per network:
+  - Whether the bot is registered / active
+  - Credit limit and **agent spend limit**
+  - **Outstanding debt** and historical spend/repay totals
+  - Last activity timestamp and credit score
+  - USDC balance available in the wallet
+
+This is what powers prompts like:
+
+- `"check my bot status on testnet"`
+- `"check my bot outstanding debt on mainnet"`
+
+### Repayments (reduce outstanding debt)
+
+The `repay` helper uses USDC to pay down **outstandingDebt** tracked by BorrowerManager and Creditor:
+
+1. **Pre-flight checks**:
+   - Verifies the borrower is **registered** and **active**.
+   - Reads current **credit limit** and any existing **outstandingDebt`**.
+2. **USDC balance & allowance**:
+   - Ensures the bot wallet has enough **USDC balance** for the requested repayment.
+   - Checks `IERC20(USDC).allowance(bot, Creditor)` and, if too low, sends an `approve(Creditor, amount)` tx first.
+3. **On-chain repay**:
+   - Calls `Creditor.repay(amount, USDC)` from the borrower wallet.
+   - The Creditor contract:
+     - Caps the repayment to `min(amount, outstandingDebt)`.
+     - Applies payments to BNPL plans via `applyPaymentToPlans`.
+     - Updates the borrower profile via `updateOnRepayment` (new score + limit).
+     - Transfers USDC from the borrower to the Vault and calls `vault.repayVaultDebt`.
+   - Emits a repayment event with the new score and limit.
+4. **Status after repay**:
+   - After a successful repay, you can run `status` again to verify:
+     - `outstandingDebt` has decreased (or is `0`),
+     - `totalRepaid` increased,
+     - `creditScore` and `creditLimit` have been updated.
+
+This is what backs prompts like:
+
+- `"repay my bot debt on testnet"`
+- `"repay 5 USDC of my bot debt on mainnet"`
 
 ## Configuration
 
@@ -91,6 +142,27 @@ This skill is a small Node.js project under `skills/sohopay`.
    # Base Sepolia testnet
    node scripts/pay.js testnet 10 0xMerchantOnTestnet
    ```
+   This uses the SOHO Pay Creditor contract to spend on credit via `spendWithAuthorization`.
+
+5. **Check status / profile and balances** using `scripts/status.js`:
+   ```bash
+   # Base mainnet
+   node scripts/status.js mainnet
+
+   # Base Sepolia testnet
+   node scripts/status.js testnet
+   ```
+   This reads the BorrowerManager profile and USDC wallet balance for the agent and prints a human-readable summary (credit limit, outstanding debt, totals, scores, and USDC balance).
+
+6. **Repay outstanding debt using USDC** with `scripts/repay.js`:
+   ```bash
+   # Base mainnet
+   node scripts/repay.js mainnet 10
+
+   # Base Sepolia testnet
+   node scripts/repay.js testnet 10
+   ```
+   This uses USDC from the agent wallet to repay `outstandingDebt` via the Creditor contract, updating the borrower profile and vault debt, and emitting a repayment event.
 
 ## Security Notes
 
@@ -102,6 +174,41 @@ This skill is a small Node.js project under `skills/sohopay`.
 
 ## Example Usage
 
-> `pay 10 to 0x1234567890abcdef1234567890abcdef12345678`
+### Natural-language commands
 
-This command (when mapped through OpenClaw) will trigger a payment of 10 USDC to the specified address on the selected Base network, using the configured `PRIVATE_KEY` to sign locally.
+These are the kinds of prompts you can send to your OpenClaw agent once the skill is installed and `PRIVATE_KEY` is configured.
+
+- **Register bot (testnet)**  
+  `"register my bot to use sohopay on Base Sepolia testnet"`
+
+- **Register bot (mainnet)**  
+  `"register my bot to use sohopay on Base mainnet"`
+
+- **Pay a merchant** (EIP‑712 spendWithAuthorization)  
+  `"pay 10 USDC to 0x1234567890abcdef1234567890abcdef12345678 on testnet using sohopay"`
+
+- **Check bot status** (credit limit, outstanding debt, totals, USDC balance)  
+  `"check my bot status on testnet"`  
+  `"check my bot outstanding debt on mainnet"`
+
+- **Repay debt** (calls `Creditor.repay(amount, stablecoin)`)  
+  `"repay my bot debt on testnet"`  
+  `"repay 5 USDC of my bot debt on mainnet"`
+
+### Script entrypoints (for reference)
+
+- Registration: `node scripts/register.js [mainnet|testnet] [check]`  
+  - `node scripts/register.js testnet` – register bot on Base Sepolia  
+  - `node scripts/register.js mainnet check` – status only, no tx
+
+- Payments (credit spend):  
+  - `node scripts/pay.js [mainnet|testnet] <amount> <merchant_address>`
+
+- Status (profile + outstanding debt + USDC balance):  
+  - `node scripts/status.js mainnet`  
+  - `node scripts/status.js testnet`
+
+- Repayments (reduce outstanding debt using USDC):  
+  - `node scripts/repay.js [mainnet|testnet] <amount>`
+
+When mapped through OpenClaw, you should prefer **natural-language prompts**; the scripts above are provided for debugging and manual CLI use.

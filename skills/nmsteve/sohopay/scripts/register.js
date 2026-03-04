@@ -31,6 +31,10 @@ const BORROWER_MANAGER_ABI = [
     "function registerAgent(address agent) external",
 ];
 
+function printUsage() {
+    console.error(`\nUSAGE:\n  node register.js                       # register this bot (PRIVATE_KEY) on mainnet\n  node register.js mainnet               # same as above\n  node register.js testnet               # register this bot on Base Sepolia (testnet)\n  node register.js mainnet check         # ONLY check status for this bot on mainnet\n  node register.js testnet check         # ONLY check status for this bot on testnet\n\nThis script always operates on the address derived from PRIVATE_KEY.\n`);
+}
+
 async function main() {
     // 1. Load Signer from Environment
     const privateKey = process.env.PRIVATE_KEY;
@@ -40,18 +44,26 @@ async function main() {
     }
 
     // 2. Parse Command-Line Arguments
-    // Usage:
-    //   node register.js                   # default: mainnet
-    //   node register.js mainnet
-    //   node register.js testnet
+    // Examples:
+    //   node register.js                   # default: mainnet, register
+    //   node register.js mainnet           # mainnet, register
+    //   node register.js testnet           # testnet, register
+    //   node register.js mainnet check     # mainnet, check-only
+    //   node register.js testnet check     # testnet, check-only
 
     let networkKey = "mainnet";
-    if (process.argv[2]) {
-        const maybeNetwork = process.argv[2].toLowerCase();
-        if (maybeNetwork === "mainnet" || maybeNetwork === "testnet") {
-            networkKey = maybeNetwork;
+    let mode = "register"; // or "check"
+
+    const args = process.argv.slice(2).map((a) => a.toLowerCase());
+
+    for (const arg of args) {
+        if (arg === "mainnet" || arg === "testnet") {
+            networkKey = arg;
+        } else if (arg === "check" || arg === "status" || arg === "--check") {
+            mode = "check";
         } else {
-            console.error("❌ USAGE: node register.js [mainnet|testnet]");
+            console.error(`❌ Unknown argument: ${arg}`);
+            printUsage();
             process.exit(1);
         }
     }
@@ -71,12 +83,12 @@ async function main() {
     }
 
     const wallet = new ethers.Wallet(privateKey, provider);
-    const agentAddress = wallet.address;
+    const botAddress = wallet.address;
 
-    console.log("--- SOHO Pay Borrower Registration ---");
+    console.log("--- SOHO Pay Bot Registration / Status ---");
     console.log(`- Network: ${networkConfig.name} (${networkKey})`);
-    console.log(`- Agent (PRIVATE_KEY address): ${agentAddress}`);
-    console.log("---------------------------------------");
+    console.log(`- Bot address (from PRIVATE_KEY): ${botAddress}`);
+    console.log("-------------------------------------------");
 
     const borrowerManager = new ethers.Contract(
         networkConfig.addresses.borrowerManager,
@@ -84,30 +96,38 @@ async function main() {
         wallet
     );
 
-    // 4. Check current registration state
-    console.log("\n🔍 Checking current borrower state...");
-    const isRegistered = await borrowerManager.isBorrowerRegistered(agentAddress);
-    const isActive = await borrowerManager.isActiveBorrower(agentAddress);
-    const creditLimit = await borrowerManager.getAgentSpendLimit(agentAddress).catch(() => 0n);
+    // 4. Check current registration state (works for both register + check-only)
+    console.log("\n🔍 Checking current bot state...");
+    const isRegistered = await borrowerManager.isBorrowerRegistered(botAddress);
+    const isActive = await borrowerManager.isActiveBorrower(botAddress);
+    const creditLimit = await borrowerManager.getAgentSpendLimit(botAddress).catch(() => 0n);
 
     console.log(`- isRegistered: ${isRegistered ? "✅ yes" : "❌ no"}`);
     console.log(`- isActive: ${isActive ? "✅ yes" : "❌ no"}`);
     if (creditLimit) {
-        console.log(`- Existing agentSpendLimit: ${ethers.formatUnits(creditLimit, USDC_DECIMALS)} USDC`);
+        console.log(`- Current spend limit: ${ethers.formatUnits(creditLimit, USDC_DECIMALS)} USDC`);
     }
 
-    if (isActive) {
-        console.log("\n✅ Agent is already active. No registration transaction needed.");
+    // If user only wants to check status, we're done.
+    if (mode === "check") {
+        console.log("\nℹ️  Check-only mode: no registration transaction sent.");
         return;
     }
 
-    console.log("\n🚀 Sending registerAgent transaction...");
+    // If already active, nothing more to do.
+    if (isActive) {
+        console.log("\n✅ Bot is already active with SOHO Pay on this network. No registration transaction needed.");
+        return;
+    }
+
+    // 5. Send registration transaction
+    console.log("\n🚀 Sending registerAgent transaction for this bot...");
     try {
-        const tx = await borrowerManager.registerAgent(agentAddress);
+        const tx = await borrowerManager.registerAgent(botAddress);
         console.log(`- Tx hash: ${tx.hash}`);
         console.log("Waiting for confirmation...");
         const receipt = await tx.wait();
-        console.log(`\n🎉 Agent registered in block: ${receipt.blockNumber}`);
+        console.log(`\n🎉 Bot registered in block: ${receipt.blockNumber}`);
     } catch (error) {
         console.error("\n❌ Registration transaction failed:", error.reason || error.message);
         process.exit(1);
