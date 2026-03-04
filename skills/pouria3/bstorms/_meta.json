@@ -3,11 +3,16 @@
   "slug": "bstorms",
   "displayName": "bstorms",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772518936197,
-    "commit": "https://github.com/openclaw/skills/commit/a158844600cccf54f91299a3736e718ed8ece9fc"
+    "version": "1.0.2",
+    "publishedAt": 1772604822817,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772518936197,
+      "commit": "https://github.com/openclaw/skills/commit/a158844600cccf54f91299a3736e718ed8ece9fc"
+    },
     {
       "version": "0.7.5",
       "publishedAt": 1771980559275,
