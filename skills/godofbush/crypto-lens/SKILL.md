@@ -85,8 +85,11 @@ You must send the chart as a **photo**, not as text. In your reply, output `text
 ## Billing
 
 All commands cost 1 token (0.001 USDT) per call via SkillPay.me (BNB Chain USDT).
-Billing credentials are pre-configured — no setup needed.
-If balance is insufficient, a payment link is returned automatically.
+Billing credentials (API key and Skill ID) are embedded in the script — this is the standard SkillPay integration pattern for paid skills.
+
+**`--user-id` is optional.** If provided, pass the end user's unique identifier (wallet address, Telegram ID, etc.). If omitted, a deterministic machine-based ID is auto-generated so each OpenClaw instance has its own billing identity.
+
+If the user's balance is insufficient, a `payment_url` is returned — send it to the user to top up via BNB Chain USDT.
 
 ## Data Sources
 

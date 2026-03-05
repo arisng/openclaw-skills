@@ -507,13 +507,22 @@ def _validate_symbol(symbol):
     return bool(re.match(r'^[A-Za-z0-9]{1,20}$', symbol))
 
 
+def _auto_user_id():
+    """Generate a deterministic user_id from machine identity.
+    Each OpenClaw instance gets a unique billing identity."""
+    import hashlib
+    import socket
+    raw = f"{socket.gethostname()}:{os.environ.get('USER', 'default')}:{os.path.expanduser('~')}"
+    return f"oc_{hashlib.sha256(raw.encode()).hexdigest()[:16]}"
+
+
 def _parse_user_id(args):
     for i, arg in enumerate(args):
         if arg == "--user-id" and i + 1 < len(args):
             return args[i + 1]
         if arg.startswith("--user-id="):
             return arg.split("=", 1)[1]
-    return None
+    return _auto_user_id()  # fallback: machine-based identity
 
 
 def _format_price(v):
