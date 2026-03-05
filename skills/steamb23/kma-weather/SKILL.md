@@ -1,14 +1,7 @@
 ---
 name: kma-weather
 description: Get weather from Korea Meteorological Administration (기상청). Provides current conditions, forecasts (3-10 days), and weather warnings/advisories (기상특보). Use when user needs Korean weather data, 기상특보, or precise local forecasts (5km grid). Requires KMA_SERVICE_KEY.
-metadata:
-  openclaw:
-    emoji: "🌦️"
-    homepage: "https://www.data.go.kr/data/15084084/openapi.do"
-    requires:
-      bins: ["python3"]
-      env: ["KMA_SERVICE_KEY"]
-    primaryEnv: "KMA_SERVICE_KEY"
+metadata: {"openclaw":{"emoji":"🌦️","homepage":"https://www.data.go.kr/data/15084084/openapi.do","requires":{"bins":["python3"],"env":["KMA_SERVICE_KEY"]},"primaryEnv":"KMA_SERVICE_KEY"}}
 ---
 
 # kma-weather
