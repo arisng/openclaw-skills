@@ -1,14 +1,25 @@
+<div align="center">
+
+<img src="assets/banner.png" alt="Gingiris" width="400" />
+
 # 🚀 AI Product Launch Playbook
 
-> **The definitive guide to launching AI products globally** — Complete Product Hunt launch strategy, Launch Week SOP, and growth playbook based on Manus & Devin's viral success.
+### The definitive guide to launching AI products globally
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![OpenClaw Skill](https://img.shields.io/badge/OpenClaw-Skill-blue)](https://github.com/openclaw/openclaw)
+[![ClawdHub](https://img.shields.io/badge/ClawdHub-Install-purple)](https://clawdhub.com/skills/gingiris-launch)
 [![Languages](https://img.shields.io/badge/Languages-4-green)](#-multilingual-support)
+
+**[English](references/en/README.md) | [中文](SKILL.md) | [日本語](references/ja/README.md) | [한국어](references/ko/README.md)**
+
+</div>
+
+---
 
 ## What is this?
 
-This is a **battle-tested product launch playbook** for AI startups, indie hackers, and open-source projects. It covers everything from pre-launch preparation to Product Hunt ranking strategies, based on real case studies from **Manus** (200-300M impressions) and **Devin** (viral AI launch).
+This is a **battle-tested product launch playbook** for AI startups, indie hackers, and open-source projects. Complete Product Hunt launch strategy, Launch Week SOP, and growth playbook based on **Manus** (200-300M impressions) and **Devin**'s viral success.
 
 **Key topics covered:**
 - 🎯 Product Hunt launch strategy (24-hour battle plan)
@@ -18,6 +29,30 @@ This is a **battle-tested product launch playbook** for AI startups, indie hacke
 - 💬 Reddit & Hacker News marketing
 - 📊 Budget templates ($15K-$50K campaigns)
 
+---
+
+## ⭐ Star the Repository
+
+<div align="center">
+
+If you find this playbook useful, please give us a star! ⭐
+
+<img src="assets/star.gif" alt="Star this repo" width="400" />
+
+</div>
+
+---
+
+## 📦 Installation
+
+```bash
+# Via ClawdHub (recommended)
+clawdhub install gingiris-launch
+
+# Or clone directly
+git clone https://github.com/Gingiris/gingiris-launch.git ~/.openclaw/skills/gingiris-launch
+```
+
 ## 🌍 Multilingual Support
 
 | Language | Entry Point |
@@ -26,13 +61,6 @@ This is a **battle-tested product launch playbook** for AI startups, indie hacke
 | 🇺🇸 English | [references/en/README.md](references/en/README.md) |
 | 🇯🇵 日本語 | [references/ja/README.md](references/ja/README.md) |
 | 🇰🇷 한국어 | [references/ko/README.md](references/ko/README.md) |
-
-## 📦 Installation
-
-```bash
-# Clone to OpenClaw skills directory
-git clone https://github.com/Gingiris/gingiris-launch.git ~/.openclaw/skills/gingiris-launch
-```
 
 ## 📚 Contents
 
