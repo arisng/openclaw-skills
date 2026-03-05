@@ -1,19 +1,16 @@
 ---
 name: chatgpt-image-generation
-description: Generate and download images from chatgpt.com using Playwright automation. Opens chatgpt.com in a new chat, types prompts, waits for bulletproof generation completion detection, downloads via hover+download button, then processes next or stops.
+description: Generate images from ChatGPT using Playwright browser automation. Opens ChatGPT, sends prompts, waits for generation, and saves the resulting images.
 ---
 
 # ChatGPT Image Generation Skill
 
-Use Playwright to automate ChatGPT web UI for free image generation (no API costs).
+Use Playwright to automate ChatGPT web UI for image generation.
 
 ## Prerequisites
 
 ```bash
-# Install Playwright
 npm install playwright
-
-# Install Chromium browser
 npx playwright install chromium
 ```
 
@@ -21,16 +18,13 @@ npx playwright install chromium
 
 ```bash
 # Generate images from prompts file
-node skills/chatgpt-image-generation/scripts/generate.js --prompts prompts.json --output ./images
+node generate.js --prompts prompts.json --output ./images
 
 # Resume from a specific index
-node skills/chatgpt-image-generation/scripts/generate.js --prompts prompts.json --output ./images --start 5
+node generate.js --prompts prompts.json --output ./images --start 5
 
-# Use a specific Chrome profile
-node skills/chatgpt-image-generation/scripts/generate.js --prompts prompts.json --output ./images --profile "~/Library/Application Support/Google/Chrome/YourProfile"
-
-# Run in headless mode (no browser window)
-node skills/chatgpt-image-generation/scripts/generate.js --prompts prompts.json --output ./images --headless
+# Run in headless mode
+node generate.js --prompts prompts.json --output ./images --headless
 ```
 
 ## Prompt File Format
@@ -45,77 +39,23 @@ or
 { "prompts": ["prompt 1", "prompt 2"] }
 ```
 
-## Bulletproof Completion Detection
+## How It Works
 
-The detection method checks ALL of the following (must pass):
-
-1. **Send button re-enabled** — `button[data-testid="send-button"]` is no longer disabled
-2. **Image exists** — `img[alt="Generated image"]` present with `naturalWidth >= 1024` AND `naturalHeight >= 1024`
-3. **Download button visible** — Download button appears on hover and is enabled
-4. **Image src stable** — Same src URL detected across 2+ consecutive checks (ensures generation fully done)
-5. **No progress spinner** — No visible `[role="progressbar"]` or spinner elements
-
-This multi-signal approach prevents:
-- Downloading before generation finishes
-- Downloading placeholder/thumbnail images
-- Missing the download button
-- Downloading mid-generation
-
-## Download Method
-
-1. Hover over the generated image to reveal the download button
-2. Click the download button (uses Playwright `expect_download()`)
-3. Save directly to numbered output file
+1. Opens ChatGPT in a Chrome browser
+2. Sends each prompt from the prompts file
+3. Waits for the response to be generated
+4. Finds the generated image in the page
+5. Saves the image to the output directory
+6. Repeats for all prompts
 
 ## Output
 
 - Numbered image files: `001.png`, `002.png`, etc.
-- `results.jsonl` — log of success/failure per prompt
+- `results.jsonl` — log of results per prompt
 
 ## Login (One-Time)
 
-If not logged in:
-1. Run script once (it will open browser visible)
-2. Sign into ChatGPT
-3. Session persists for future runs (uses persistent profile)
-
-## Platform Support
-
-- **macOS**: `~/Library/Application Support/Google/Chrome/`
-- **Windows**: `%LOCALAPPDATA%\Google\Chrome\User Data\`
-- **Linux**: `~/.config/google-ch script autorome/`
-
-The-detects your OS and uses the appropriate default profile path.
-
----
-
-## 💡 Optional Enhancements
-
-### Use a Dedicated Chrome Profile
-
-**Benefit:** Keep your image generation sessions separate from your normal Chrome browsing. Creates a clean, dedicated environment.
-
-**How:** Pass `--profile` with a custom profile path:
-```bash
---profile ~/Library/Application\ Support/Google/Chrome/ImageGenProfile
-```
-
-Create a new profile in Chrome first, then use its path.
-
-### Organize Images in a ChatGPT Project
-
-**Benefit:** Keep all auto-generated images organized in one project folder in ChatGPT, making it easy to find and review them later.
-
-**How:** Modify the script to add project selection (see free-image-generation skill as reference). The free-image-generation skill includes this feature by default.
-
----
-
-## Differences from free-image-generation
-
-This skill:
-- ✅ Opens a new chat window (no project selection)
-- ✅ Uses default Chrome profile (can specify custom with --profile)
-
-The [free-image-generation](/skills/free-image-generation) skill:
-- ✅ Automatically selects "Auto Image Generation" project
-- ✅ Uses dedicated ImageGenProfile by default
+If not logged into ChatGPT:
+1. Run the script (browser will open visible)
+2. Sign into ChatGPT 
+3. Session is saved for future runs
