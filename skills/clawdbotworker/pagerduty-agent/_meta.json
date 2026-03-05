@@ -1,0 +1,11 @@
+{
+  "owner": "clawdbotworker",
+  "slug": "pagerduty-agent",
+  "displayName": "PagerDuty Agent",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772670675535,
+    "commit": null
+  },
+  "history": []
+}
