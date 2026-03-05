@@ -1,0 +1,11 @@
+{
+  "owner": "googleworkspace-bot",
+  "slug": "gws-classroom",
+  "displayName": "Gws Classroom",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772665486220,
+    "commit": null
+  },
+  "history": []
+}
