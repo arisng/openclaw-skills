@@ -1,0 +1,58 @@
+{
+  "name": "quote-reader",
+  "version": "1.0.0",
+  "description": "引用前文内容读取技能，智能识别用户引用的历史消息，自动检索并理解上下文",
+  "author": "miliger",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openclaw/quote-reader"
+  },
+  "keywords": [
+    "openclaw",
+    "skill",
+    "quote",
+    "reply",
+    "context",
+    "history",
+    "feishu",
+    "qq"
+  ],
+  "openclaw": {
+    "skillVersion": "1.0.0",
+    "minOpenClawVersion": "2026.3.1",
+    "triggers": [
+      "引用",
+      "回复",
+      "quote",
+      "reply",
+      "前文"
+    ],
+    "capabilities": [
+      "quote-detection",
+      "history-retrieval",
+      "context-extraction",
+      "intent-recognition"
+    ],
+    "scripts": {
+      "install": "install.sh",
+      "detect": "scripts/detect-quote.sh",
+      "extract": "scripts/extract-quote.sh",
+      "integrate": "scripts/integrate-quote.sh",
+      "test": "scripts/test-quote.sh"
+    },
+    "platforms": ["feishu", "qq", "telegram", "wechat"],
+    "config": {
+      "context_window": {
+        "before": 2,
+        "after": 2
+      }
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "scripts": {
+    "test": "scripts/test-quote.sh",
+    "install-deps": "echo 'No dependencies required'"
+  }
+}
