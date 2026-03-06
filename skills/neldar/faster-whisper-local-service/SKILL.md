@@ -29,17 +29,30 @@ To pre-download models in an air-gapped environment, see [faster-whisper docs](h
 
 ## Security notes
 
-- **gst-launch-1.0**: The service uses GStreamer's `decodebin` to convert incoming audio to WAV. While arguments are passed as a list (no shell injection), processing untrusted/malformed audio files carries inherent risk through GStreamer's media parsers. Ensure `gst-launch-1.0` is installed from your OS vendor's trusted packages.
-- **Bind address**: The service binds to `127.0.0.1` only (not exposed externally).
-- **CORS**: Restricted to a single origin by default (`https://127.0.0.1:8443`).
-- **No credentials**: The skill does not request any API keys or secrets.
+### Network isolation
+- Binds to `127.0.0.1` only — **not reachable from the network**.
+- CORS restricted to a single origin (`https://127.0.0.1:8443` by default).
+- No credentials, API keys, or secrets are used or stored.
 
-## Security and reproducibility defaults
+### Input validation
+- **Upload size limit**: Requests exceeding the configured limit are rejected before processing (HTTP 413). Default: 50 MB, configurable via `MAX_UPLOAD_MB`.
+- **Magic-byte check**: Only files with recognized audio signatures (WAV, OGG, FLAC, MP3, WebM, M4A) are accepted. Unrecognized formats are rejected (HTTP 415) before reaching GStreamer.
+- **Subprocess safety**: All arguments to `gst-launch-1.0` are passed as a list — no shell expansion or injection is possible.
 
-- pinned package install: `faster-whisper==1.1.1` (override via env)
-- explicit dependency check for `gst-launch-1.0`
-- CORS is restricted to one origin by default: `https://127.0.0.1:8443` (override via env)
-- configurable workspace/service paths (no hardcoded user path required)
+### GStreamer dependency
+The service uses GStreamer's `decodebin` for audio format conversion. Like any media library, GStreamer's parsers process binary data and should be kept up to date. **Mitigation**: install `gst-launch-1.0` from your OS vendor's trusted packages and apply security updates regularly. The magic-byte pre-filter above reduces the attack surface by rejecting non-audio payloads before they reach GStreamer.
+
+### No data exfiltration
+- No outbound network calls (after initial model download).
+- No telemetry, analytics, or phone-home behavior.
+- Temporary files are created in a per-request `TemporaryDirectory` and cleaned up immediately.
+
+## Reproducibility defaults
+
+- Pinned package: `faster-whisper==1.1.1` (override via env)
+- Explicit dependency check for `gst-launch-1.0`
+- CORS restricted to one origin by default
+- Configurable workspace/service paths (no hardcoded user path)
 
 ## Deploy
 
