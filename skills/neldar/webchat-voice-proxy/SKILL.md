@@ -1,14 +1,11 @@
 ---
 name: webchat-voice-proxy
+deprecated: true
 description: >
-  Voice input and microphone button for OpenClaw WebChat Control UI. Adds a mic
-  button to chat, records audio via browser MediaRecorder, transcribes locally
-  via faster-whisper, and injects text into the conversation. Includes HTTPS/WSS
-  reverse proxy, TLS cert management, and gateway hook for update safety. Fully
-  local speech-to-text, no API costs. Real-time VU meter shows voice activity.
-  Push-to-Talk (hold to speak) and Toggle mode (click start/stop), switchable
-  via double-click. Keyboard shortcuts: Ctrl+Space PTT, Ctrl+Shift+M continuous
-  recording. Localized UI (English, German, Chinese built-in, extensible).
+  ⚠️ DEPRECATED — This skill has been split into two separate skills for better
+  modularity: **webchat-https-proxy** (HTTPS/WSS reverse proxy) and
+  **webchat-voice-gui** (mic button, VU meter, i18n). Install those instead.
+  Use **webchat-voice-full-stack** for one-step deployment of all components.
   Keywords: voice input, microphone, WebChat, Control UI, speech to text, STT,
   local transcription, MediaRecorder, HTTPS proxy, voice button, mic button,
   push-to-talk, PTT, keyboard shortcut, i18n, localization.
