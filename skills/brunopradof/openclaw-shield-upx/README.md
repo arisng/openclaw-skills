@@ -1,22 +1,22 @@
-# OpenClaw Shield — Security Specialist
+# OpenClaw Shield
 
-A skill that turns your OpenClaw agent into a cybersecurity specialist.
+Security monitoring skill for the OpenClaw Shield plugin by [UPX](https://www.upx.com).
 
 ## What it does
 
-When Shield is installed, your agent can:
+Teaches your agent to use the Shield plugin — check health, query events, inspect the redaction vault, and manage security cases.
 
-- **Monitor** — check Shield health, event counts, and sync status
-- **Inspect** — view host agent inventory and redaction vault via `shield vault show`
-- **Interpret** — analyze security events and explain what they mean
-- **Advise** — recommend remediation, hardening, and next steps
-- **Triage** — assess alert severity and prioritize response
-- **Explain** — break down attack techniques, privacy model, and detection scope
+- Run `openclaw shield status`, `logs`, `flush`, `vault show`, and `cases` commands
+- Call RPCs for programmatic access (`shield.events_recent`, `shield.events_summary`, `shield.cases_list`, etc.)
+- Triage and resolve cases with categorized resolution and root cause
+- Set up automated case monitoring via `openclaw shield monitor --on`
+- Quick case check with `/shieldcases` (no agent tokens used)
+- Answer questions about Shield's privacy model and subscription status
 
 ## Requirements
 
 - [OpenClaw Shield plugin](https://www.npmjs.com/package/@upx-us/shield) installed and activated
-- Active Shield subscription from [UPX](https://upx.com) — [start a free 30-day trial](https://www.upx.com/pt/lp/openclaw-shield-upx)
+- Active Shield subscription from [UPX](https://upx.com) — [start a free 30-day trial](https://www.upx.com/en/lp/openclaw-shield-upx)
 
 ## Install
 
