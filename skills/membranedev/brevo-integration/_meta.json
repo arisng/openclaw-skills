@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "brevo-integration",
+  "displayName": "Brevo",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772870541432,
+    "commit": null
+  },
+  "history": []
+}
