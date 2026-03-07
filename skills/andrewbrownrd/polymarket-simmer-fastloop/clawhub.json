@@ -1,0 +1,17 @@
+{
+  "requires": {
+    "pip": [
+      "simmer-sdk"
+    ],
+    "env": [
+      "SIMMER_API_KEY",
+      "TRADING_VENUE",
+      "SIMMER_USER_ID"
+    ]
+  },
+  "cron": "*/5 * * * *",
+  "automaton": {
+    "managed": true,
+    "entrypoint": "polymarket-simmer-fastloop.py"
+  }
+}
