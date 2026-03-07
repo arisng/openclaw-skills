@@ -1,0 +1,11 @@
+{
+  "owner": "eliaspfeffer",
+  "slug": "bit-chat",
+  "displayName": "AI-native Bitcoin payments. Buy, sell, send, and request Bitcoin directly through any messenger app (Telegram, WhatsApp, Signal, Email).",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1772800184569,
+    "commit": null
+  },
+  "history": []
+}
