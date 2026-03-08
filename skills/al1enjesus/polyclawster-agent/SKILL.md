@@ -1,98 +1,116 @@
----
-name: polyclawster-agent
-version: 1.0.3
-description: "Trade on Polymarket prediction markets automatically. Use when: user wants to trade on Polymarket, place YES/NO bets, get AI whale signals, auto-trade prediction markets, check Polymarket portfolio or P&L, create a trading wallet, view signal leaderboard, register agent. Triggers: 'trade on polymarket', 'bet on prediction market', 'get polymarket signals', 'auto-trade', 'my polymarket portfolio', 'polyclawster', 'follow whale trades', 'prediction market'."
----
+# PolyClawster
 
-# PolyClawster Agent
+Trade on [Polymarket](https://polymarket.com) prediction markets from the command line. Search any market, place bets (YES/NO), and manage your wallet — all through simple Node.js scripts.
 
-Gives your OpenClaw agent the ability to trade on Polymarket prediction markets — automatically and with a real Polygon USDC wallet.
+## Features
 
-## What you can do
+- **Search markets** — Find any active Polymarket market by keyword
+- **Trade any market** — Place YES/NO bets on any active market via CLOB API
+- **Auto-setup wallet** — Create a Polygon wallet automatically, no manual steps
+- **Check balance** — View wallet balance, positions, and P&L
+- **Signal scanner** — Automated edge detection for high-probability trades
 
-| Command | What happens |
-|---------|-------------|
-| Get signals | Returns AI-scored opportunities from whale wallet tracking (score 0–10) |
-| Get wallet | Creates or retrieves a non-custodial Polygon USDC wallet |
-| Place bet | Places a YES or NO bet on any Polymarket market |
-| Check portfolio | Shows live P&L, open positions, balance |
-| Auto-trade | Runs a loop: scan signals → evaluate → bet on strong ones |
-| Leaderboard | Register your agent and track P&L publicly |
+## Quick Start
 
-## First-time setup (30 seconds)
-
-New users automatically get **$1 free demo balance** — no deposit needed to start.
+### 1. Setup (auto-create wallet)
 
 ```bash
-# Step 1: Create wallet (auto-runs on first use)
-node scripts/polymarket.js wallet <tgId>
-
-# Step 2: Try auto-trade in dry-run mode
-node scripts/auto-trade.js --tgId <tgId> --budget 10 --dry-run
-
-# Step 3: Go live (after depositing USDC to wallet address)
-node scripts/auto-trade.js --tgId <tgId> --budget 20 --min-score 7.5
+node scripts/setup.js --auto
 ```
 
-## Signal scoring
+This creates a Polygon wallet via the PolyClawster API and saves credentials to `~/.polyclawster/config.json`. After setup, deposit USDC (Polygon network) to your wallet address to start trading.
 
-Every signal is scored 0–10:
-
-- **9–10** → Large whale move ($20k+), very high conviction. Always act.
-- **7–8** → Strong signal, multiple confirmations. Act normally.
-- **5–6** → Moderate signal. Use small size only.
-- **< 5** → Weak. Skip.
-
-Recommended minimum score: **7.5**
-
-## CLI reference
+### 2. Search markets
 
 ```bash
-# Signals
-node scripts/polymarket.js signals
-node scripts/polymarket.js signals --min-score 8 --limit 5
+# Find markets about a topic
+node scripts/search.js "bitcoin"
 
-# Portfolio
-node scripts/polymarket.js portfolio <tgId>
+# Show top markets by volume
+node scripts/search.js
 
-# Wallet
-node scripts/polymarket.js wallet <tgId>
-
-# Place bet
-node scripts/polymarket.js bet <tgId> "Market title" YES 5
-node scripts/polymarket.js bet <tgId> "Market title" NO 10
-
-# Leaderboard
-node scripts/polymarket.js register <tgId> "My Agent 🦈"
-
-# Auto-trade loop
-node scripts/auto-trade.js --tgId <tgId> --budget 20 --min-score 7.5 --max-bet 5
-node scripts/auto-trade.js --tgId <tgId> --budget 20 --dry-run   # simulate first
-node scripts/auto-trade.js --tgId <tgId> --budget 20 --once      # run once and exit
+# Limit results
+node scripts/search.js --limit 5 "election"
 ```
 
-## API endpoints (for direct integration)
+### 3. Place a trade
 
-Base: `https://polyclawster.com`
+```bash
+# Bet $5 on YES for a market (use slug from search results)
+node scripts/trade.js --market "will-bitcoin-reach-100k" --side YES --amount 5
 
-```
-GET  /api/signals                        returns scored signals
-GET  /api/portfolio?tgId=<id>            user portfolio
-POST /api/trade                          place a bet
-POST /api/wallet-create                  create wallet
-POST /api/agents                         leaderboard
+# Bet $10 on NO using conditionId
+node scripts/trade.js --market "0xabc123..." --side NO --amount 10
 ```
 
-Full docs: `references/api.md`
+### 4. Check balance
 
-## Fees
+```bash
+node scripts/balance.js
+```
 
-- **5% on profits only** — nothing on losses
-- Demo mode is free
-- Referral: earn $4 per friend + 40% commission share forever
+## Manual Setup
 
-## Useful links
+If you already have a Polygon wallet with a Polymarket CLOB API key:
 
-- App: https://t.me/PolyClawsterBot
-- Website: https://polyclawster.com
-- Support: https://t.me/virixlabs
+```bash
+node scripts/setup.js --wallet 0xYOUR_PRIVATE_KEY
+```
+
+This derives your CLOB API credentials and saves everything to `~/.polyclawster/config.json`.
+
+## Scripts Reference
+
+| Script | Description |
+|--------|-------------|
+| `scripts/setup.js --auto` | Auto-create wallet and save config |
+| `scripts/setup.js --wallet 0x...` | Manual setup with existing wallet |
+| `scripts/search.js [query]` | Search Polymarket markets |
+| `scripts/trade.js --market X --side YES --amount N` | Place a trade |
+| `scripts/balance.js` | Check wallet balance and positions |
+| `scripts/edge.js` | Run signal scanner for automated trading |
+
+## Configuration
+
+Config is stored at `~/.polyclawster/config.json`:
+
+```json
+{
+  "wallet": {
+    "address": "0x...",
+    "privateKey": "0x..."
+  },
+  "api": {
+    "key": "...",
+    "secret": "...",
+    "passphrase": "..."
+  }
+}
+```
+
+## Requirements
+
+- Node.js 18+
+- Dependencies: `@polymarket/clob-client`, `ethers`, `https-proxy-agent`
+
+Install dependencies:
+```bash
+cd /path/to/polyclawster && npm install
+```
+
+## Dashboard
+
+View your portfolio at: `https://polyclawster.com/dashboard?address=YOUR_ADDRESS`
+
+Agent leaderboard: `https://polyclawster.com/leaderboard`
+
+## How It Works
+
+1. Markets are fetched from Polymarket's Gamma API
+2. Orders are built and signed locally using your wallet
+3. Signed orders are submitted to Polymarket's CLOB (Central Limit Order Book)
+4. A residential proxy is used for order submission from restricted regions
+
+## Author
+
+[Virix Labs](https://virixlabs.com)
