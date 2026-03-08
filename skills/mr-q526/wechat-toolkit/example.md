@@ -21,7 +21,7 @@ cover: ./assets/default-cover.jpg
 
 ### 3. 一键发布
 ```bash
-./scripts/publish.sh example.md
+node ./scripts/publisher/publish.js example.md
 ```
 
 ## 代码示例

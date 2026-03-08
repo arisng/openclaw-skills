@@ -7,6 +7,7 @@ metadata:
       {
         "emoji": "📦",
         "requires": { "bins": ["node"] },
+        "platforms": ["macos", "linux", "windows"],
         "install":
           [
             {
@@ -300,17 +301,18 @@ cover: ./assets/cover.jpg                         # ❌ 相对路径可能出错
 ## 发布方式
 
 ```bash
-# 方式 1: 使用 publish.sh
-bash {baseDir}/scripts/publisher/publish.sh /path/to/article.md
+# 方式 1: 使用 publish.js
+node {baseDir}/scripts/publisher/publish.js /path/to/article.md
 
 # 方式 2: 直接用 wenyan-cli
 wenyan publish -f article.md -t lapis -h solarized-light
 
 # 方式 3: stdin（推荐，解决路径问题）
+# macOS/Linux:
 cat "/path/to/article.md" | WECHAT_APP_ID=xxx WECHAT_APP_SECRET=xxx wenyan publish -t lapis -h solarized-light
 
 # 方式 4: 含视频文章（必须用这个）
-python3 {baseDir}/scripts/publisher/publish_with_video.py /path/to/article.md
+node {baseDir}/scripts/publisher/publish_with_video.js /path/to/article.md
 ```
 
 ## 主题选项
@@ -326,7 +328,7 @@ wenyan theme -l  # 查看所有主题
 
 ## 视频嵌入（关键）
 
-微信视频必须用 iframe + data-mpvid 格式，`publish_with_video.py` 已内置此逻辑。
+微信视频必须用 iframe + data-mpvid 格式，`publish_with_video.js` 已内置此逻辑。
 
 Markdown 中引用：
 ```markdown
@@ -341,7 +343,7 @@ Markdown 中引用：
 | wenyan 未安装 | `npm install -g @wenyan-md/cli` |
 | 环境变量未设置 | `export WECHAT_APP_ID=xxx` |
 | 缺少 frontmatter | 添加 title + cover |
-| 40001 token 失效 | 用 `publish_with_video.py`（已内置 token 管理） |
+| 40001 token 失效 | 用 `publish_with_video.js`（已内置 token 管理） |
 
 ---
 
@@ -353,7 +355,7 @@ Markdown 中引用：
 1. 搜索文章：node {baseDir}/scripts/search/search_wechat.js "AI教程" -n 5 -c
 2. 选择目标文章，执行洗稿改写
 3. 保存为 Markdown（含 frontmatter）
-4. 发布：bash {baseDir}/scripts/publisher/publish.sh article.md
+4. 发布：node {baseDir}/scripts/publisher/publish.js article.md
 ```
 
 ## 下载 → 洗稿 → 发布
@@ -362,7 +364,7 @@ Markdown 中引用：
 1. 下载文章：node {baseDir}/scripts/downloader/download.js "https://mp.weixin.qq.com/s/xxx"
 2. 读取下载的 HTML/Markdown，执行洗稿改写
 3. 保存为 Markdown（含 frontmatter）
-4. 发布：bash {baseDir}/scripts/publisher/publish.sh article.md
+4. 发布：node {baseDir}/scripts/publisher/publish.js article.md
 ```
 
 ---

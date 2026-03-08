@@ -147,13 +147,22 @@ async function main() {
     console.log('🐱 微信公众号文章下载器');
     console.log(`📎 URL: ${articleUrl}\n`);
 
-    // 找系统 Chrome
+    // 找系统 Chrome（跨平台：macOS / Linux / Windows）
     const chromePathCandidates = [
+        // macOS
         '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        // Linux
         '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable',
         '/usr/bin/chromium-browser',
         '/usr/bin/chromium',
-    ];
+        '/snap/bin/chromium',
+        // Windows
+        path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    ].filter(Boolean);
     const executablePath = chromePathCandidates.find(p => fs.existsSync(p));
     if (!executablePath) {
         console.error('❌ 未找到系统 Chrome，请先安装 Google Chrome');
