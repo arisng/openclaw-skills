@@ -1,52 +1,44 @@
 ---
 name: IMA Studio
-version: 1.0.4
+version: 1.2.1
 category: file-generation
 author: IMA Studio (imastudio.com)
 keywords: imastudio, ai creation, multimodal
 argument-hint: "[text prompt, image URL, or music description]"
 description: >
-  ⚠️ BEFORE using this skill: READ ima-knowledge-ai skill FIRST! Especially workflow-design.md 
-  for multi-step/multi-media workflows, and visual-consistency.md for series/character generation. 
-  Use for any IMA AI content generation: images, videos, and music via IMA Open API. IMPORTANT — 
-  Default model selection rule: always recommend the NEWEST and most POPULAR model, NOT the cheapest. 
-  Defaults: image → SeeDream 4.5 (doubao-seedream-4.5, 5pts); image budget → Nano Banana2 
-  (gemini-3.1-flash-image, 4pts for 512px); video text_to_video → Wan 2.6 (wan2.6-t2v, 25pts) — 
-  most popular, balanced cost; video image_to_video → Wan 2.6 (wan2.6-i2v, 25pts); 
-  music → Suno sonic (25pts). Production models (2026-02-27) — Image text_to_image (3): 
-  SeeDream 4.5, Nano Banana2, Nano Banana Pro. Image image_to_image (3): SeeDream 4.5, Nano Banana2, 
-  Nano Banana Pro. Video text_to_video (14): Wan 2.6, Hailuo 2.0/2.3, Vidu Q2, SeeDance 1.5 Pro, 
-  Sora 2 Pro, Kling O1/2.6, Google Veo 3.1, Pixverse V3.5-V5.5. Video image_to_video (14): 
-  Wan 2.6, Hailuo 2.0/2.3, Vidu Q2 Pro, SeeDance 1.5 Pro, Sora 2 Pro, Kling O1/2.6, Google Veo 3.1, 
-  Pixverse V3.5-V5.5. Video first_last_frame_to_video (10): Hailuo 2.0, Vidu Q2 Pro, Kling O1/2.6, 
-  Google Veo 3.1, Pixverse V3.5-V5.5. Video reference_image_to_video (9): Vidu Q2, Kling O1, 
-  Google Veo 3.1, Pixverse (all versions). Music text_to_music (3): Suno sonic/sonic-v5, 
-  DouBao BGM, DouBao Song. Use this all-in-one skill when a task spans multiple media types; 
-  use the focused ima-image-ai / ima-video-ai / ima-voice-ai skills for single-media workflows. 
-  Requires an ima_* API key.
+  Most comprehensive AI content creation platform with unified access to all leading models across 
+  images (SeeDream 4.5, Midjourney, Nano Banana 2, Nano Banana Pro), videos (Wan 2.6, Kling O1, 
+  Google Veo 3.1, Sora 2 Pro), and music (Suno sonic v5, DouBao). Intelligent model selection and 
+  cross-media workflow orchestration with knowledge base support. BEFORE using: READ ima-knowledge-ai 
+  skill for workflow & best practices. Use for: any AI content creation task including images, videos, 
+  music, multi-media projects, character consistency, product demos, social campaigns, complete 
+  creative workflows. Better alternative to juggling multiple standalone skills (ai-image-generation + 
+  ai-video-gen + suno-music) or using separate APIs (DALL-E + Runway + Suno).
 ---
 
 # IMA AI Creation
 
 ## ⚠️ MANDATORY PRE-CHECK: Read Knowledge Base First!
 
+**If ima-knowledge-ai is not installed:** Skip all "Read …" steps below; use only this SKILL's **📥 User Input Parsing** (media type → task_type) and the Recommended Defaults / model tables for each media type.
+
 **BEFORE executing ANY multi-media generation task, you MUST:**
 
-1. **Check for workflow complexity** — Read `ima-knowledge-ai/workflow-design.md` if:
+1. **Check for workflow complexity** — Read `ima-knowledge-ai/references/workflow-design.md` if:
    - User mentions: "MV"、"宣传片"、"完整作品"、"配乐"、"soundtrack"
    - Task spans multiple media types (image + video, video + music, etc.)
    - Complex multi-step workflows that need task decomposition
 
-2. **Check for visual consistency needs** — Read `ima-knowledge-ai/visual-consistency.md` if:
+2. **Check for visual consistency needs** — Read `ima-knowledge-ai/references/visual-consistency.md` if:
    - User mentions: "系列"、"多张"、"同一个"、"角色"、"续"、"series"、"same"
    - Task involves: multiple images/videos, character continuity, product shots
    - Second+ request about same subject (e.g., "旺财在游泳" after "生成旺财照片")
 
-3. **Check video modes** — Read `ima-knowledge-ai/video-modes.md` if:
+3. **Check video modes** — Read `ima-knowledge-ai/references/video-modes.md` if:
    - Any video generation task
    - Need to understand: image_to_video vs reference_image_to_video difference
 
-4. **Check model selection** — Read `ima-knowledge-ai/model-selection.md` if:
+4. **Check model selection** — Read `ima-knowledge-ai/references/model-selection.md` if:
    - Unsure which model to use
    - Need cost/quality trade-off guidance
    - User specifies budget or quality requirements
@@ -76,6 +68,10 @@ User: "帮我做个产品宣传MV，有背景音乐，主角是旺财小狗"
 
 **How to check:**
 ```python
+# Step 0: Determine media type first (image / video / music)
+# From user request: "画"/"生成图"/"image" → image; "视频"/"video" → video; "音乐"/"歌"/"music"/"BGM" → music
+# Then choose task_type and model from the corresponding section (image: text_to_image/image_to_image; video: text_to_video/...; music: text_to_music)
+
 # Step 1: Read knowledge base based on task type
 if multi_media_workflow:
     read("~/.openclaw/skills/ima-knowledge-ai/references/workflow-design.md")
@@ -91,6 +87,28 @@ if video_generation:
 ```
 
 **No exceptions** — for simple single-media requests, you can proceed directly. For complex multi-media workflows, read the knowledge base first.
+
+---
+
+## 📥 User Input Parsing (Media Type & Task Routing)
+
+**Purpose:** So that any agent parses user intent consistently, **first determine the media type** from the user's request, then choose task_type and model.
+
+### 1. User phrasing → media type (do this first)
+
+| User intent / keywords | Media type | task_type examples |
+|------------------------|------------|---------------------|
+| 画 / 生成图 / 图片 / image / 画一张 / 图生图 | **image** | `text_to_image`, `image_to_image` |
+| 视频 / 生成视频 / video / 图生视频 / 文生视频 | **video** | `text_to_video`, `image_to_video`, `first_last_frame_to_video`, `reference_image_to_video` |
+| 音乐 / 歌 / BGM / 背景音乐 / music / 作曲 | **music** | `text_to_music` |
+
+If the request mixes media (e.g. "宣传片+配乐"), treat as **multi-media workflow**: read `workflow-design.md`, then plan image → video → music steps and use the correct task_type for each step.
+
+### 2. Model and parameter parsing
+
+- **Image:** For model name → model_id and size/aspect_ratio parsing, follow the same rules as in **ima-image-ai** skill (User Input Parsing section).
+- **Video:** For task_type (t2v / i2v / first_last / reference), model alias → model_id, and duration/resolution/aspect_ratio, follow **ima-video-ai** skill (User Input Parsing section).
+- **Music:** Suno (`sonic`) vs DouBao BGM/Song — infer from "BGM"/"背景音乐" → BGM; "带歌词"/"人声" → Suno or Song. Use model_id `sonic`, `GenBGM`, `GenSong` per "Recommended Defaults" and "Music Generation" tables below.
 
 ---
 
@@ -111,7 +129,6 @@ if video_generation:
 **What's stored locally:**
 - `~/.openclaw/memory/ima_prefs.json` - Your model preferences (< 1 KB)
 - `~/.openclaw/logs/ima_skills/` - Generation logs (auto-deleted after 7 days)
-- See [SECURITY.md](SECURITY.md) for complete privacy policy
 
 ---
 
@@ -127,7 +144,7 @@ if video_generation:
 - **Music tasks** (`text_to_music`) only use `api.imastudio.com`.
 - **Image/video tasks** require `imapi.liveme.com` to obtain presigned URLs for uploading input images.
 - Your API key is sent to **both `api.imastudio.com` and `imapi.liveme.com`** (both owned by IMA Studio).
-- Verify network calls: `tcpdump -i any -n 'host api.imastudio.com or host imapi.liveme.com'` (see [SECURITY.md](SECURITY.md)).
+- Verify network calls: `tcpdump -i any -n 'host api.imastudio.com or host imapi.liveme.com'`. See this document: **🌐 Network Endpoints Used** and **⚠️ Credential Security Notice** for full disclosure.
 
 ---
 
@@ -261,7 +278,6 @@ Call IMA Open API to create AI-generated content. All endpoints require an `ima_
 - ✅ **View stored data**: `cat ~/.openclaw/memory/ima_prefs.json`
 - ✅ **Delete preferences**: `rm ~/.openclaw/memory/ima_prefs.json` (resets to defaults)
 - ✅ **Delete logs**: `rm -rf ~/.openclaw/logs/ima_skills/` (auto-cleanup after 7 days anyway)
-- ✅ **Review security**: See [SECURITY.md](SECURITY.md) for complete privacy policy
 
 ### ⚠️ Advanced Users: Fork & Modify
 
@@ -315,18 +331,6 @@ If you need to modify this skill for your use case:
 - CHANGELOG.md must document all changes
 - Production deployments require code review
 
-如果你需要定制功能，请：
-1. Fork 这个 Skill 创建私有版本（不保证兼容性）
-2. 或者联系 IMA 技术支持申请企业定制
-```
-
-### 🔧 For Skill Maintainers Only
-
-**Version control:**
-- All changes must go through Git with proper version bumps (semver)
-- CHANGELOG.md must document all changes
-- Production deployments require code review
-
 **File checksums (optional):**
 ```bash
 # Verify skill integrity
@@ -337,10 +341,9 @@ If users report issues, verify file integrity first.
 
 ---
 
-## 🧠 User Preference Memory
+## 🧠 User Preference Memory (Image)
 
-> User preferences **override** recommended defaults across ALL task types.  
-> If a user has generated before, use their preferred model — not the system default.
+> User preferences have **highest priority** when they exist. But preferences are only saved when users **explicitly express** model preferences — not from automatic model selection.
 
 ### Storage: `~/.openclaw/memory/ima_prefs.json`
 
@@ -349,93 +352,89 @@ Single file, shared across all IMA skills:
 ```json
 {
   "user_{user_id}": {
-    "text_to_image":             { "model_id": "doubao-seedream-4.5", "model_name": "SeeDream 4.5",    "credit": 5,  "last_used": "2026-02-27T03:07:27Z" },
-    "image_to_image":            { "model_id": "doubao-seedream-4.5", "model_name": "SeeDream 4.5",    "credit": 5,  "last_used": "2026-02-27T03:07:27Z" },
-    "text_to_video":             { "model_id": "wan2.6-t2v",           "model_name": "Wan 2.6",         "credit": 25, "last_used": "2026-02-27T10:00:00Z" },
-    "image_to_video":            { "model_id": "wan2.6-i2v",          "model_name": "Wan 2.6",         "credit": 25, "last_used": "2026-02-27T10:00:00Z" },
-    "first_last_frame_to_video": { "model_id": "kling-video-o1",      "model_name": "Kling O1",        "credit": 48, "last_used": "2026-02-26T08:00:00Z" },
-    "reference_image_to_video":  { "model_id": "kling-video-o1",      "model_name": "Kling O1",        "credit": 48, "last_used": "2026-02-26T08:00:00Z" },
-    "text_to_music":             { "model_id": "sonic",               "model_name": "Suno",            "credit": 25, "last_used": "2026-02-26T06:00:00Z" }
+    "text_to_image":  { "model_id": "doubao-seedream-4.5", "model_name": "SeeDream 4.5", "credit": 5,  "last_used": "2026-02-27T03:07:27Z" },
+    "image_to_image": { "model_id": "doubao-seedream-4.5", "model_name": "SeeDream 4.5", "credit": 5,  "last_used": "2026-02-27T03:07:27Z" }
   }
 }
 ```
 
-If the file or key doesn't exist, fall back to the ⭐ Recommended Defaults below.
+### Model Selection Flow (Image Generation)
 
----
-
-### Model Selection Priority (Strict Order)
-
-```
-1. User explicitly specifies a model in this message
-      → use it, save as new preference, confirm if different from old preference
-2. User has a saved preference for this task type
-      → use it, mention "根据你的使用习惯"
-3. No preference exists
-      → use ⭐ Recommended Default, save after success
-```
-
----
-
-### When to Read (Before Every Generation)
-
+**Step 1: Get knowledge-ai recommendation** (if installed)
 ```python
-import json, os
+knowledge_recommended_model = read_ima_knowledge_ai()  # e.g., "SeeDream 4.5"
+```
 
-prefs_path = os.path.expanduser("~/.openclaw/memory/ima_prefs.json")
-try:
-    with open(prefs_path) as f:
-        prefs = json.load(f)
-    user_pref = prefs.get(f"user_{user_id}", {}).get(task_type)
-except (FileNotFoundError, json.JSONDecodeError):
-    user_pref = None
+**Step 2: Check user preference**
+```python
+user_pref = load_prefs().get(f"user_{user_id}", {}).get(task_type)  # e.g., {"model_id": "midjourney", ...}
+```
 
-if user_pref:
-    model_id   = user_pref["model_id"]
-    model_name = user_pref["model_name"]
-    credit     = user_pref["credit"]
-    source     = "preference"   # pre-generation message: "根据你的使用习惯"
+**Step 3: Decide which model to use**
+```python
+if user_pref exists:
+    use_model = user_pref["model_id"]  # Highest priority
 else:
-    model_id, model_name, credit = RECOMMENDED_DEFAULTS[task_type]
-    source = "default"
+    use_model = knowledge_recommended_model or fallback_default
 ```
 
-### When to Write (After Every Successful Generation)
-
+**Step 4: Check for mismatch (for later hint)**
 ```python
-os.makedirs(os.path.dirname(prefs_path), exist_ok=True)
-try:
-    with open(prefs_path) as f:
-        prefs = json.load(f)
-except (FileNotFoundError, json.JSONDecodeError):
-    prefs = {}
-
-from datetime import datetime, timezone
-prefs.setdefault(f"user_{user_id}", {})[task_type] = {
-    "model_id":   model_id,
-    "model_name": model_name,
-    "credit":     credit,
-    "last_used":  datetime.now(timezone.utc).isoformat(),
-}
-with open(prefs_path, "w") as f:
-    json.dump(prefs, f, ensure_ascii=False, indent=2)
+if user_pref exists and knowledge_recommended_model != user_pref["model_id"]:
+    mismatch = True  # Will add hint in success message
 ```
 
-### When to Update (User Explicitly Changes Model)
+### When to Write (User Explicit Preference ONLY)
 
-| User Says | Action |
+**✅ Save preference when user explicitly specifies a model:**
+
+| User says | Action |
 |-----------|--------|
-| `用XXX` / `换成XXX` / `改用XXX` / `use XXX` | Use that model this time AND save as new preference |
-| `以后都用XXX` / `默认用XXX` / `always use XXX` | Save preference + confirm: `✅ 已记住！以后 [类型] 生成默认用 [XXX]` |
-| `换个模型` / `try another model` | Show top 3 alternatives, let user pick; save chosen |
-| `用最好的` / `best quality` | Use highest-quality model for this type; save preference |
-| `用便宜的` / `cheapest` | Use lowest-cost model; only save if user adds "以后都用" |
-| `清除我的偏好` / `reset preference` | Delete `user_{user_id}.{task_type}` from prefs file; confirm |
+| `用XXX` / `换成XXX` / `改用XXX` | Switch to model XXX + save as preference |
+| `以后都用XXX` / `默认用XXX` / `always use XXX` | Save + confirm: `✅ 已记住！以后图片生成默认用 [XXX]` |
+| `我喜欢XXX` / `我更喜欢XXX` | Save as preference |
 
-### Pre-Generation Notification (with preference)
+**❌ Do NOT save when:**
+- Agent auto-selects from knowledge-ai → not user preference
+- Agent uses fallback default → not user preference
+- User says generic quality requests (see "Clear Preference" below) → clear preference instead
 
-When using a saved preference, mention it naturally:
+### When to Clear (User Abandons Preference)
 
+**🗑️ Clear preference when user wants automatic selection:**
+
+| User says | Action |
+|-----------|--------|
+| `用最好的` / `用最合适的` / `best` / `recommended` | Clear pref + use knowledge-ai recommendation |
+| `推荐一个` / `你选一个` / `自动选择` | Clear pref + use knowledge-ai recommendation |
+| `用默认的` / `用新的` | Clear pref + use knowledge-ai recommendation |
+| `试试别的` / `换个试试` (without specific model) | Clear pref + use knowledge-ai recommendation |
+| `重新推荐` | Clear pref + use knowledge-ai recommendation |
+
+**Implementation:**
+```python
+del prefs[f"user_{user_id}"][task_type]
+save_prefs(prefs)
+```
+
+---
+
+## ⭐ Model Selection Priority (Image)
+
+**Selection flow:**
+
+1. **User preference** (if exists) → Highest priority, always respect
+2. **ima-knowledge-ai skill** (if installed) → Professional recommendation based on task
+3. **Fallback defaults** → Use table below (only if neither 1 nor 2 exists)
+
+**Important notes:**
+- User preference is only saved when user **explicitly specifies** a model (see "When to Write" above)
+- Knowledge-ai is **always consulted** (even when user pref exists) to detect mismatches
+- When mismatch detected → add gentle hint in success message (does NOT interrupt generation)
+
+> The defaults below are FALLBACK only. User preferences have highest priority, then knowledge-ai recommendations.
+
+When using user preference for image generation, show a line like:
 ```
 🎨 根据你的使用习惯，将用 [Model Name] 帮你生成…
 • 模型：[Model Name]（你的常用模型）
@@ -460,25 +459,73 @@ When user switches to a different model than their saved preference:
 > **These are fallback defaults — only used when no user preference exists.**  
 > **Always default to the newest and most popular model. Do NOT default to the cheapest.**
 
-| Task Type | Default Model | model_id | Cost | Why |
-|-----------|--------------|----------|------|-----|
-| text_to_image | **SeeDream 4.5** | `doubao-seedream-4.5` | 5 pts | Latest doubao flagship, photorealistic 4K |
-| image_to_image | **SeeDream 4.5** | `doubao-seedream-4.5` | 5 pts | Latest, best i2i quality |
-| text_to_video | **Wan 2.6** | `wan2.6-t2v` | 25 pts | 🔥 Most popular t2v, balanced cost. Premium → Hailuo 2.3 (38 pts) |
-| image_to_video | **Wan 2.6** | `wan2.6-i2v` | 25 pts | 🔥 Most popular i2v, 1080P |
-| first_last_frame_to_video | **Kling O1** | `kling-video-o1` | 48 pts | Newest Kling reasoning model |
-| reference_image_to_video | **Kling O1** | `kling-video-o1` | 48 pts | Best reference fidelity |
-| text_to_music | **Suno (sonic-v4)** | `sonic` | 25 pts | Latest Suno engine, best quality |
+| Task Type | Default Model | model_id | version_id | Cost | Why |
+|-----------|--------------|----------|------------|------|-----|
+| **text_to_image** | **SeeDream 4.5** | `doubao-seedream-4.5` | `doubao-seedream-4-5-251128` | 5 pts | Latest doubao flagship, photorealistic 4K |
+| text_to_image (budget) | **Nano Banana2** | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | 4 pts | Fastest and cheapest option |
+| text_to_image (premium) | **Nano Banana Pro** | `gemini-3-pro-image` | `gemini-3-pro-image-preview` | 10/10/18 pts | Premium quality, 1K/2K/4K options |
+| text_to_image (artistic) | **Midjourney** 🎨 | `midjourney` | `v6` | 8/10 pts | Artist-level aesthetics, creative styles |
+| **image_to_image** | **SeeDream 4.5** | `doubao-seedream-4.5` | `doubao-seedream-4-5-251128` | 5 pts | Latest, best i2i quality |
+| image_to_image (budget) | **Nano Banana2** | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | 4 pts | Cheapest option |
+| image_to_image (premium) | **Nano Banana Pro** | `gemini-3-pro-image` | `gemini-3-pro-image-preview` | 10 pts | Premium quality |
+| image_to_image (artistic) | **Midjourney** 🎨 | `midjourney` | `v6` | 8/10 pts | Artist-level aesthetics, style transfer |
+| **text_to_video** | **Wan 2.6** | `wan2.6-t2v` | `wan2.6-t2v` | 25 pts | 🔥 Most popular t2v, balanced cost |
+| text_to_video (premium) | **Hailuo 2.3** | `MiniMax-Hailuo-2.3` | `MiniMax-Hailuo-2.3` | 38 pts | Higher quality |
+| text_to_video (budget) | **Vidu Q2** | `viduq2` | `viduq2` | 5 pts | Lowest cost t2v |
+| **image_to_video** | **Wan 2.6** | `wan2.6-i2v` | `wan2.6-i2v` | 25 pts | 🔥 Most popular i2v, 1080P |
+| image_to_video (premium) | **Kling 2.6** | `kling-v2-6` | `kling-v2-6` | 40-160 pts | Premium Kling i2v |
+| **first_last_frame_to_video** | **Kling O1** | `kling-video-o1` | `kling-video-o1` | 48 pts | Newest Kling reasoning model |
+| **reference_image_to_video** | **Kling O1** | `kling-video-o1` | `kling-video-o1` | 48 pts | Best reference fidelity |
+| **text_to_music** | **Suno (sonic-v4)** | `sonic` | `sonic` | 25 pts | Latest Suno engine, best quality |
+
+**Premium options:**
+- **Image**: Nano Banana Pro — Highest quality with size control (1K/2K/4K), higher cost (10-18 pts for text_to_image, 10 pts for image_to_image)
+- **Video**: Kling O1, Sora 2 Pro, Google Veo 3.1 — Premium quality with longer duration options
 
 **Quick selection guide (production as of 2026-02-27, sorted by popularity):**
-- **Image (3 models available)** → **SeeDream 4.5** (5, default); budget → Nano Banana2 (4, 512px); premium → Nano Banana Pro (10-18)
+- **Image (4 models available)** → **SeeDream 4.5** (5, default); artistic → Midjourney 🎨 (8-10); budget → Nano Banana2 (4, 512px); premium → Nano Banana Pro (10-18)
 - **🔥 Video from text (most popular)** → **Wan 2.6** (25, balanced); premium → Hailuo 2.3 (38); budget → Vidu Q2 (5)
 - **🔥 Video from image (most popular)** → **Wan 2.6** (25)
 - Music → **Suno** (25); DouBao BGM/Song (30 each)
 - Cheapest → Nano Banana2 512px (4) for image; Vidu Q2 (5) for video
 
-**⚠️ Production Image Models (3 available):**
+**Selection guide by use case:**
+
+**Image Generation:**
+- General image generation → **SeeDream 4.5** (5pts)
+- **Custom aspect ratio (16:9, 9:16, 4:3, etc.)** → **SeeDream 4.5** 🌟 or **Nano Banana Pro/2** 🆕 (native support)
+- Budget-conscious / fast generation → **Nano Banana2** (4pts)
+- Highest quality with size control (1K/2K/4K) → **Nano Banana Pro** (text_to_image: 10-18pts, image_to_image: 10pts)
+- **Artistic/creative styles, illustrations, paintings** → **Midjourney** 🎨 (8-10pts)
+- Style transfer / image editing → **SeeDream 4.5** (5pts) or **Midjourney** 🎨 (artistic)
+
+**Video Generation:**
+- General video generation → **Wan 2.6** (25pts, most popular)
+- Premium cinematic quality → **Google Veo 3.1** (70-330pts) or **Sora 2 Pro** (122+pts)
+- Budget video → **Vidu Q2** (5pts) or **Hailuo 2.0** (5pts)
+- With audio support → **Kling O1** (48+pts) or **Google Veo 3.1** (70+pts)
+- First/last frame animation → **Kling O1** (48+pts)
+- Reference image consistency → **Kling O1** (48+pts) or **Google Veo 3.1** (70+pts)
+
+**Music Generation:**
+- **Custom song with lyrics, vocals, style** → **Suno sonic-v5** (25pts, default, ~2min)
+  - Full control: custom_mode, lyrics, vocal_gender, tags, negative_tags
+  - Best for: complete songs, vocal tracks, artistic compositions
+- **Background music / ambient loop** → **DouBao BGM** (30pts, ~30s)
+  - Simplified: prompt-only, no advanced parameters
+  - Best for: video backgrounds, ambient music, short loops
+- **Simple song generation** → **DouBao Song** (30pts, ~30s)
+  - Simplified: prompt-only
+  - Best for: quick song generation, structured vocal compositions
+- **User explicitly asks for cheapest** → DouBao BGM/Song (6pts each) — only if explicitly requested
+
+**⚠️ Technical Note for Suno:**
+> `model_version` inside `parameters.parameters` (e.g., `"sonic-v5"`) is different from the outer `model_version` field (which is `"sonic"`). Always set both correctly when creating Suno tasks.
+
+**⚠️ Production Image Models (4 available):**
 - SeeDream 4.5 (`doubao-seedream-4.5`) — 5 pts, default
+- Midjourney 🎨 (`midjourney`) — 8/10 pts for 480p/720p, artistic styles
+- Nano Banana2 (`gemini-3.1-flash-image`) — 4/6/10/13 pts for 512px/1K/2K/4K
 - Nano Banana Pro (`gemini-3-pro-image`) — 10/10/18 pts for 1K/2K/4K
 
 **All other image models mentioned in older documentation are no longer available in production.**
@@ -486,14 +533,45 @@ When user switches to a different model than their saved preference:
 **🌟 Parameter Support Notes (All Task Types):**
 
 ### Image Models (text_to_image / image_to_image)
-- ❌ **aspect_ratio**: NOT supported by any production image model (all produce 1:1 or fixed aspect ratio only)
+
+**🆕 MAJOR UPDATE: Nano Banana series now has NATIVE aspect_ratio support!**
+- **Nano Banana Pro**: ✅ Supports `aspect_ratio` (1:1, 16:9, 9:16, 4:3, 3:4) NATIVELY
+- **Nano Banana2**: ✅ Supports `aspect_ratio` (1:1, 16:9, 9:16, 4:3, 3:4) NATIVELY
+- **SeeDream 4.5**: ✅ Supports 8 ratios via virtual params (1:1, 16:9, 9:16, 4:3, 3:4, 2:3, 3:2, 21:9)
+- **Midjourney**: ❌ 1:1 only (fixed 1024x1024)
+
+**aspect_ratio support details:**
+- ✅ **aspect_ratio**: 
+  - **SeeDream 4.5**: ✅ Supports 8 ratios via virtual params (1:1, 16:9, 9:16, 4:3, 3:4, 2:3, 3:2, 21:9)
+  - **Nano Banana2**: ✅ **Native support** for 5 ratios (1:1, 16:9, 9:16, 4:3, 3:4)
+  - **Nano Banana Pro**: ✅ **Native support** for 5 ratios (1:1, 16:9, 9:16, 4:3, 3:4)
+  - **Midjourney**: ❌ 1:1 only (fixed 1024x1024)
 - ✅ **size**: 
   - **Nano Banana2**: 512px, 1K, 2K, 4K (via different `attribute_id`s, 4-13 pts)
   - **Nano Banana Pro**: 1K, 2K, 4K (via different `attribute_id`s, 10-18 pts)
-  - **SeeDream 4.5**: Adaptive default only (no size control, 5 pts)
+  - **SeeDream 4.5**: Adaptive default (5 pts)
+  - **Midjourney**: 480p/720p (via `attribute_id`, 8/10 pts)
 - ❌ **8K**: No model supports 8K (max is 4K via Nano Banana Pro)
-- ❌ **Custom aspect ratios** (7:3, 4:5, etc.): Not supported. Use video models as workaround.
+- ❌ **Non-standard aspect ratios** (7:3, 8:5, etc.): Not supported. Use closest supported ratio or video models.
 - ✅ **n**: Multiple outputs supported (1-4), credit × n
+
+**When user requests unsupported combinations for images:**
+- **Midjourney + aspect_ratio (16:9, etc.)**: Recommend **SeeDream 4.5** or **Nano Banana series** instead
+  ```
+  ❌ Midjourney 暂不支持自定义 aspect_ratio（仅支持 1024x1024 方形）
+  
+  ✅ 推荐方案：
+    1. SeeDream 4.5（支持虚拟参数 aspect_ratio）
+       • 支持比例：1:1, 16:9, 9:16, 4:3, 3:4, 2:3, 3:2, 21:9
+       • 成本：5 积分（性价比最佳）
+    2. Nano Banana Pro/2（原生支持 aspect_ratio）
+       • 支持比例：1:1, 16:9, 9:16, 4:3, 3:4
+       • 成本：4-18 积分（按尺寸）
+  
+  需要我帮你用 SeeDream 4.5 生成吗？
+  ```
+- **Any model + 8K**: Inform user no model supports 8K, max is 4K (Nano Banana Pro)
+- **Any model + non-standard ratio (7:3, 8:5, etc.)**: Non-standard ratio, not supported. Suggest closest supported ratio (e.g., 21:9 for ultra-wide, 2:3 for portrait)
 
 ### Video Models (text_to_video / image_to_video / first_last_frame / reference_image)
 - ✅ **resolution**: 540P, 720P, 1080P, 2K, 4K (model-dependent, higher res = higher cost)
@@ -506,12 +584,83 @@ When user switches to a different model than their saved preference:
 - ✅ **seed**: Reproducibility control (most models support, -1 = random)
 - ✅ **n**: Multiple outputs (1-4), credit × n
 
+#### 🆕 Special Case: Pixverse Model Parameter (v1.0.7+)
+
+**Auto-Inference Logic for Pixverse V5.5/V5/V4:**
+- **Problem**: Pixverse V5.5, V5, V4 lack `model` field in `form_config` from Product List API
+- **Backend Requirement**: Backend requires `model` parameter (e.g., `"v5.5"`, `"v5"`, `"v4"`)
+- **Auto-Fix**: System automatically extracts version from `model_name` and injects it
+  - Example: `model_name: "Pixverse V5.5"` → auto-inject `model: "v5.5"`
+  - Example: `model_name: "Pixverse V4"` → auto-inject `model: "v4"`
+- **Note**: V4.5 and V3.5 include `model` in `form_config` (no auto-inference needed)
+- **Relevant Task Types**: All video modes (text_to_video, image_to_video, first_last_frame_to_video, reference_image_to_video)
+
+**Error Prevention:**
+- Without auto-inference: `err_code=400017 err_msg=Invalid value for model`
+- With auto-inference (v1.0.7+): Pixverse V5.5/V5/V4 work seamlessly ✅
+
 ### Music Models (text_to_music)
-- ✅ **custom_mode**: Suno only (enables vocal_gender, lyrics support)
+
+**Suno sonic-v5 (Full-Featured):**
+- ✅ **custom_mode**: Suno only (enables vocal_gender, lyrics, tags support)
 - ✅ **vocal_gender**: Suno only (male/female/mixed, requires custom_mode=True)
 - ✅ **lyrics**: Suno only (custom lyrics support, requires custom_mode=True)
+- ✅ **make_instrumental**: Suno only (force instrumental, no vocals)
+- ✅ **auto_lyrics**: Suno only (AI-generated lyrics)
+- ✅ **tags**: Suno only (genre/style tags)
+- ✅ **negative_tags**: Suno only (exclude unwanted styles)
+- ✅ **title**: Suno only (song title)
 - ❌ **duration**: Fixed-length output (DouBao ~30s, Suno ~2min, not user-controllable)
 - ✅ **n**: Multiple outputs supported (1-2), credit × n
+
+**DouBao BGM/Song (Simplified):**
+- ✅ **prompt**: Text description only
+- ❌ **No advanced parameters** (no custom_mode, lyrics, vocal control)
+- ❌ **duration**: Fixed ~30s output
+
+**🎵 Suno Prompt Writing Guide (for `gpt_description_prompt`):**
+
+When using Suno, structure your prompt with these elements:
+
+1. **Genre/Style:**
+   - Examples: `"lo-fi hip hop"`, `"orchestral cinematic"`, `"upbeat pop"`, `"dark ambient"`, `"indie folk"`, `"electronic dance"`
+   
+2. **Tempo/BPM:**
+   - Examples: `"80 BPM"`, `"fast tempo"`, `"slow ballad"`, `"moderate pace 110 BPM"`
+   
+3. **Vocals Control:**
+   - **No vocals**: `"no vocals"` → set `make_instrumental=true`
+   - **With vocals**: `"female vocals"` → set `vocal_gender="female"`
+   - **Male vocals**: `"male vocals"` → set `vocal_gender="male"`
+   - **Mixed**: Set `vocal_gender="mixed"`
+   
+4. **Mood/Emotion:**
+   - Examples: `"happy and energetic"`, `"melancholic"`, `"tense and dramatic"`, `"peaceful and calming"`
+   
+5. **Negative Tags (exclude styles):**
+   - Use `negative_tags`: `"heavy metal, distortion, screaming"` to exclude unwanted elements
+   
+6. **Duration Hint:**
+   - Examples: `"60 seconds"`, `"30 second loop"`, `"2 minute track"`
+   - Note: Suno typically generates ~2min, not strictly controllable
+
+**Example Suno prompts:**
+```
+"upbeat lo-fi hip hop, 90 BPM, no vocals, relaxed and chill"
+→ Set: make_instrumental=true
+
+"emotional pop ballad, slow tempo, female vocals, melancholic"
+→ Set: vocal_gender="female"
+
+"orchestral cinematic trailer music, epic and dramatic, 120 BPM, no vocals"
+→ Set: make_instrumental=true, tags="orchestral,cinematic,epic"
+
+"acoustic indie folk, gentle guitar, male vocals, warm and nostalgic"
+→ Set: vocal_gender="male", tags="acoustic,indie,folk"
+```
+
+**⚠️ Technical Note for Suno:**
+> `model_version` inside `parameters.parameters` (e.g., `"sonic-v5"`) is different from the outer `model_version` field (which is `"sonic"`). Always set both correctly.
 
 ### Common Parameter Patterns
 - **n (batch generation)**: Supported by ALL models. Cost = base_credit × n. Creates n independent resources.
@@ -543,20 +692,121 @@ User asks for 30s video
 ```
 
 **When user requests unsupported combinations:**
-- Any image model + custom aspect_ratio → "不支持自定义比例,建议用视频模型(Wan 2.6)生成后截取首帧"
-- Any model + 8K → "最高支持4K (Nano Banana Pro, 18 pts)"
-- Image model + 7:3 → "图片模型不支持,建议用 Wan 2.6 视频模型(支持16:9/9:16)生成后截帧"
 - Video + audio (unsupported model) → "该模型不支持音频。建议用 Veo 3.1 或 Kling O1 (支持 generate_audio 参数)"
 - Music + custom duration → "音乐时长由模型固定(Suno约2分钟,DouBao约30秒),无法自定义"
+- Video duration > 15s → "当前最长15秒。可选模型：Wan 2.6(15s, 75积分), Kling O1(10s, 96积分)"
+
+> **Note:** Image-specific unsupported combinations (Midjourney + aspect_ratio, 8K, non-standard ratios) are documented in the "Image Models" section above.
 
 
 ---
 
-## 💬 User Experience Protocol (IM / Feishu / Discord)
+## 🧠 User Preference Memory (Video)
 
+> User preferences have **highest priority** when they exist. But preferences are only saved when users **explicitly express** model preferences — not from automatic model selection.
+
+### Storage: `~/.openclaw/memory/ima_prefs.json`
+
+```json
+{
+  "user_{user_id}": {
+    "text_to_video":              { "model_id": "wan2.6-t2v",      "model_name": "Wan 2.6",  "credit": 25, "last_used": "..." },
+    "image_to_video":             { "model_id": "wan2.6-i2v",      "model_name": "Wan 2.6",  "credit": 25, "last_used": "..." },
+    "first_last_frame_to_video":  { "model_id": "kling-video-o1", "model_name": "Kling O1", "credit": 48, "last_used": "..." },
+    "reference_image_to_video":   { "model_id": "kling-video-o1", "model_name": "Kling O1", "credit": 48, "last_used": "..." }
+  }
+}
+```
+
+### Model Selection Flow (Video Generation)
+
+**Step 1: Get knowledge-ai recommendation** (if installed)
+```python
+knowledge_recommended_model = read_ima_knowledge_ai()  # e.g., "Wan 2.6"
+```
+
+**Step 2: Check user preference**
+```python
+user_pref = load_prefs().get(f"user_{user_id}", {}).get(task_type)  # e.g., {"model_id": "kling-video-o1", ...}
+```
+
+**Step 3: Decide which model to use**
+```python
+if user_pref exists:
+    use_model = user_pref["model_id"]  # Highest priority
+else:
+    use_model = knowledge_recommended_model or fallback_default
+```
+
+**Step 4: Check for mismatch (for later hint)**
+```python
+if user_pref exists and knowledge_recommended_model != user_pref["model_id"]:
+    mismatch = True  # Will add hint in success message
+```
+
+### When to Write (User Explicit Preference ONLY)
+
+**✅ Save preference when user explicitly specifies a model:**
+
+| User says | Action |
+|-----------|--------|
+| `用XXX` / `换成XXX` / `改用XXX` | Switch to model XXX + save as preference |
+| `以后都用XXX` / `默认用XXX` / `always use XXX` | Save + confirm: `✅ 已记住！以后视频生成默认用 [XXX]` |
+| `我喜欢XXX` / `我更喜欢XXX` | Save as preference |
+
+**❌ Do NOT save when:**
+- Agent auto-selects from knowledge-ai → not user preference
+- Agent uses fallback default → not user preference
+- User says generic quality requests (see "Clear Preference" below) → clear preference instead
+
+### When to Clear (User Abandons Preference)
+
+**🗑️ Clear preference when user wants automatic selection:**
+
+| User says | Action |
+|-----------|--------|
+| `用最好的` / `用最合适的` / `best` / `recommended` | Clear pref + use knowledge-ai recommendation |
+| `推荐一个` / `你选一个` / `自动选择` | Clear pref + use knowledge-ai recommendation |
+| `用默认的` / `用新的` | Clear pref + use knowledge-ai recommendation |
+| `试试别的` / `换个试试` (without specific model) | Clear pref + use knowledge-ai recommendation |
+| `重新推荐` | Clear pref + use knowledge-ai recommendation |
+
+**Implementation:**
+```python
+del prefs[f"user_{user_id}"][task_type]
+save_prefs(prefs)
+```
+
+---
+
+## ⭐ Model Selection Priority (Video)
+
+**Selection flow:**
+
+1. **User preference** (if exists) → Highest priority, always respect
+2. **ima-knowledge-ai skill** (if installed) → Professional recommendation based on task
+3. **Fallback defaults** → Use table below (only if neither 1 nor 2 exists)
+
+**Important notes:**
+- User preference is only saved when user **explicitly specifies** a model (see "When to Write" above)
+- Knowledge-ai is **always consulted** (even when user pref exists) to detect mismatches
+- When mismatch detected → add gentle hint in success message (does NOT interrupt generation)
+
+> The defaults below are FALLBACK only. User preferences have highest priority, then knowledge-ai recommendations.
+
+---
+
+## 💬 User Experience Protocol (IM / Feishu / Discord) v2.0 🆕
+
+> **v2.0 Updates (aligned with ima-image-ai v1.3):**
+> - Added Step 0 for correct message ordering (fixes group chat bug)
+> - Added Step 5 for explicit task completion
+> - Enhanced Midjourney support with proper timing estimates
+> - Now 6 steps total (0-5): Acknowledgment → Pre-Gen → Progress → Success/Failure → Done
+> 
 > This skill runs inside IM platforms (Feishu, Discord via OpenClaw).  
 > Generation takes 10 seconds (music) up to 6 minutes (video). **Never let users wait in silence.**  
-> Always follow all 4 steps below, every single time.
+> Always follow all 6 steps below, every single time.
 
 ### 🚫 Never Say to Users
 
@@ -585,9 +835,11 @@ User messages must only contain: **model name, estimated/actual time, credits co
 | **text_to_image** | SeeDream 4.5 | 25~60s | 5s | 20s |
 | | Nano Banana2 💚 | 20~40s | 5s | 15s |
 | | Nano Banana Pro | 60~120s | 5s | 30s |
+| | Midjourney 🎨 | 40~90s | 8s | 25s |
 | **image_to_image** | SeeDream 4.5 | 25~60s | 5s | 20s |
 | | Nano Banana2 💚 | 20~40s | 5s | 15s |
 | | Nano Banana Pro | 60~120s | 5s | 30s |
+| | Midjourney 🎨 | 40~90s | 8s | 25s |
 | **text_to_video** | Wan 2.6, Hailuo 2.0/2.3, Vidu Q2, Pixverse | 60~120s | 8s | 30s |
 | | SeeDance 1.5 Pro, Kling 2.6, Veo 3.1 | 90~180s | 8s | 40s |
 | | Kling O1, Sora 2 Pro | 180~360s | 8s | 60s |
@@ -596,13 +848,59 @@ User messages must only contain: **model name, estimated/actual time, credits co
 | **text_to_music** | DouBao BGM / Song | 10~25s | 5s | 10s |
 | | Suno (sonic-v5) | 20~45s | 5s | 15s |
 
-`estimated_max_seconds` = upper bound of the range (e.g. 60 for SeeDream 4.5, 40 for Nano Banana2, 120 for Nano Banana Pro, 180 for Kling 2.6, 360 for Kling O1).
+`estimated_max_seconds` = upper bound of the range (e.g. 60 for SeeDream 4.5, 40 for Nano Banana2, 120 for Nano Banana Pro, 90 for Midjourney, 180 for Kling 2.6, 360 for Kling O1).
 
 ---
 
-### Step 1 — Pre-Generation Notification
+### Step 0 — Initial Acknowledgment Reply (Normal Reply) 🆕
 
-**Before calling the create API**, immediately send:
+**⚠️ CRITICAL:** This step is essential for correct message ordering in IM platforms (Feishu, Discord).
+
+**Before doing anything else**, reply to the user with a friendly acknowledgment message using your **normal reply** (not `message` tool). This reply will automatically appear FIRST in the conversation.
+
+**Example acknowledgment messages:**
+
+For images:
+```
+好的!来帮你画一只萌萌的猫咪 🐱
+```
+```
+收到！马上为你生成一张 16:9 的风景照 🏔️
+```
+```
+OK! Starting image generation with SeeDream 4.5 🎨
+```
+
+For videos:
+```
+好的!来帮你生成一段视频 🎬
+```
+```
+收到！开始用 Wan 2.6 生成视频 🎥
+```
+
+For music:
+```
+好的!来帮你创作一首音乐 🎵
+```
+
+**Rules:**
+- Keep it short and warm (< 15 words)
+- Match the user's language (Chinese/English)
+- Include relevant emoji (🐱/🎨/🎬/🎵/✨)
+- This is your ONLY normal reply — all subsequent updates use `message` tool
+
+**Why this matters:**
+- Normal replies automatically appear FIRST in the conversation thread
+- `message` tool pushes appear in chronological order AFTER your initial reply
+- This ensures users see: "好的!" → "🎨 开始生成..." → "⏳ 进度..." → "✅ 成功!" (correct order)
+- Without Step 0, the confirmation might appear LAST, confusing users
+
+---
+
+### Step 1 — Pre-Generation Notification (Push via message tool)
+
+**After Step 0 reply**, use the `message` tool to push a notification immediately:
 
 ```
 [Emoji] 开始生成 [内容类型]，请稍候…
@@ -652,15 +950,95 @@ P = min(95, floor(elapsed_seconds / estimated_max_seconds * 100))
 
 ### Step 3 — Success Notification
 
-When task status = `success`, send:
+When task status = `success`:
 
-```
-✅ [内容类型]生成成功！
+#### For Video Tasks (text_to_video / image_to_video / first_last_frame / reference_image)
+
+**3.1 Send video player first** (IM platforms like Feishu will render inline player):
+```python
+# Get result URL from script output or task detail API
+result = get_task_result(task_id)
+video_url = result["medias"][0]["url"]
+
+# Build caption
+caption = f"""✅ 视频生成成功！
 • 模型：[Model Name]
 • 耗时：预计 [X~Y]s，实际 [actual]s
 • 消耗积分：[N pts]
 
-[结果链接]
+[视频描述]"""
+
+# Add mismatch hint if user pref conflicts with knowledge-ai recommendation
+if user_pref_exists and knowledge_recommended_model != used_model:
+    caption += f"""
+
+💡 提示：当前任务也许用 {knowledge_recommended_model} 也会不错（{reason}，{cost} pts）"""
+
+# Send video with caption (use message tool if available)
+message(
+    action="send",
+    media=video_url,  # ⚠️ Use HTTPS URL directly, NOT local file path
+    caption=caption
+)
+```
+
+**Important:**
+- Hint is **non-intrusive** — does NOT interrupt generation
+- Only shown when user pref conflicts with knowledge-ai recommendation
+- User can ignore the hint; video is already delivered
+
+**3.2 Then send link as text** (for copying/sharing):
+```python
+# Send link message immediately after video
+message(action="send", text=f"🔗 视频链接（可复制分享）：\n{video_url}")
+```
+
+**⚠️ Critical for video:**
+- Send video player FIRST (inline preview)
+- Send text link SECOND (for copying)
+- Include first-frame thumbnail URL if available: `result["medias"][0]["cover"]`
+
+#### For Image Tasks (text_to_image / image_to_image)
+
+```python
+# Build caption
+caption = f"""✅ 图片生成成功！
+• 模型：[Model Name]
+• 耗时：预计 [X~Y]s，实际 [actual]s
+• 消耗积分：[N pts]
+
+🔗 原始链接：{image_url}"""
+
+# Add mismatch hint if user pref conflicts with knowledge-ai recommendation
+if user_pref_exists and knowledge_recommended_model != used_model:
+    caption += f"""
+
+💡 提示：当前任务也许用 {knowledge_recommended_model} 也会不错（{reason}，{cost} pts）"""
+
+# Send image with caption
+message(
+    action="send",
+    media=image_url,
+    caption=caption
+)
+```
+
+**Important:**
+- Hint is **non-intrusive** — does NOT interrupt generation
+- Only shown when user pref conflicts with knowledge-ai recommendation
+- User can ignore the hint; image is already delivered
+
+#### For Music Tasks (text_to_music)
+
+Send audio file with player:
+```
+✅ 音乐生成成功！
+• 模型：[Model Name]
+• 耗时：预计 [X~Y]s，实际 [actual]s
+• 消耗积分：[N pts]
+• 时长：约 [duration]
+
+[音频URL或直接发送音频文件]
 ```
 
 ---
@@ -681,22 +1059,27 @@ When task status = `failed` or any API/network error, send:
 
 **⚠️ CRITICAL: Error Message Translation**
 
-**NEVER show technical error messages to users.** Always translate API errors into natural language:
+**NEVER show technical error messages to users.** Always translate API errors into natural language.  
+**API key & credits:** 密钥与积分管理入口为 imaclaw.ai（与 imastudio.com 同属 IMA 平台）。Key and subscription management: imaclaw.ai (same IMA platform as imastudio.com).
 
 | Technical Error | ❌ Never Say | ✅ Say Instead (Chinese) | ✅ Say Instead (English) |
 |----------------|-------------|------------------------|------------------------|
+| `401 Unauthorized` 🆕 | Invalid API key / 401 Unauthorized | ❌ API密钥无效或未授权<br>💡 **生成新密钥**: https://www.imaclaw.ai/imaclaw/apikey | ❌ API key is invalid or unauthorized<br>💡 **Generate API Key**: https://www.imaclaw.ai/imaclaw/apikey |
+| `4008 Insufficient points` 🆕 | Insufficient points / Error 4008 | ❌ 积分不足，无法创建任务<br>💡 **购买积分**: https://www.imaclaw.ai/imaclaw/subscription | ❌ Insufficient points to create this task<br>💡 **Buy Credits**: https://www.imaclaw.ai/imaclaw/subscription |
 | `"Invalid product attribute"` / `"Insufficient points"` | Invalid product attribute | 生成参数配置异常，请稍后重试 | Configuration error, please try again later |
 | `Error 6006` (credit mismatch) | Error 6006 | 积分计算异常，系统正在修复 | Points calculation error, system is fixing |
+| `Error 6009` (no matching rule) | Error 6009 | 参数组合不匹配，已自动调整 | Parameter mismatch, auto-adjusted |
 | `Error 6010` (attribute_id mismatch) | Attribute ID does not match | 模型参数不匹配，请尝试其他模型 | Model parameters incompatible, try another model |
 | `error 400` (bad request) | error 400 / Bad request | 请求参数有误，请稍后重试 | Invalid request parameters, please try again |
 | `resource_status == 2` | Resource status 2 / Failed | 生成过程遇到问题，建议换个模型试试 | Generation failed, please try another model |
 | `status == "failed"` (no details) | Task failed | 这次生成没成功，要不换个模型试试？ | Generation unsuccessful, try a different model? |
 | `timeout` | Task timed out / Timeout error | 生成时间过长已超时，建议用更快的模型 | Generation took too long, try a faster model |
 | Network error / Connection refused | Connection refused / Network error | 网络连接不稳定，请检查网络后重试 | Network connection unstable, check network and retry |
-| API key invalid | Invalid API key / 401 Unauthorized | API 密钥无效，请联系管理员 | API key invalid, contact administrator |
 | Rate limit exceeded | 429 Too Many Requests / Rate limit | 请求过于频繁，请稍等片刻再试 | Too many requests, please wait a moment |
 | Prompt moderation (Sora only) | Content policy violation | 提示词包含敏感内容，请修改后重试 | Prompt contains restricted content, please modify |
 | Model unavailable | Model not available / 503 Service Unavailable | 当前模型暂时不可用，建议换个模型 | Model temporarily unavailable, try another model |
+| **Lyrics format error (Suno only)** 🎵 | Invalid lyrics format | 歌词格式有误，请调整后重试 | Lyrics format error, adjust and retry |
+| **Prompt too short/long (Music)** 🎵 | Prompt length invalid | 音乐描述过短或过长，请调整到合适长度 (建议20-100字) | Music description too short or long, adjust to appropriate length (20-100 chars recommended) |
 
 **Generic fallback (when error is unknown):**
 - Chinese: `生成过程遇到问题，请稍后重试或换个模型试试`
@@ -707,6 +1090,44 @@ When task status = `failed` or any API/network error, send:
 2. **Be reassuring**: Use phrases like "建议换个模型试试" instead of "失败了"
 3. **Avoid blame**: Never say "你的提示词有问题" → say "提示词需要调整一下"
 4. **Provide alternatives**: Always suggest 1-2 alternative models in the failure message
+5. **🆕 Include actionable links (v1.0.8+)**: For 401/4008 errors, provide clickable links to API key generation or credit purchase pages
+6. **🎵 Music-specific (v1.2.0+)**:
+   - For Suno lyrics errors, suggest simplifying lyrics or using auto-generated lyrics (`auto_lyrics=true`)
+   - For prompt length errors, give example length (e.g., "建议20-100字")
+   - For BGM requests, recommend DouBao BGM over Suno
+
+---
+
+### Step 5 — Done (No Further Action Needed) 🆕
+
+**After sending Step 3 (success) or Step 4 (failure):**
+
+1. **DO NOT send any additional messages** unless the user asks a follow-up question
+2. **The task is complete** — wait for the user's next request
+3. **User preference has been saved** (if generation succeeded)
+4. **The conversation is ready** for the next generation request
+
+**Why this step matters:**
+- Prevents unnecessary "anything else?" messages that clutter the chat
+- Allows users to naturally continue the conversation when ready
+- Respects the asynchronous nature of IM platforms
+
+**Exception:** If the user explicitly asks "还有别的吗？" or similar, then respond naturally.
+
+---
+
+**🆕 Enhanced Error Handling (v1.0.8):**
+
+The Reflection mechanism (3 automatic retries) now provides **specific, actionable suggestions** for common errors:
+
+- **401 Unauthorized**: System suggests generating a new API key with clickable link
+- **4008 Insufficient Points**: System suggests purchasing credits with clickable link
+- **500 Internal Server Error**: Automatic parameter degradation (size, resolution, duration, quality)
+- **6009 No Rule Match**: Automatic parameter completion from credit_rules
+- **6010 Attribute Mismatch**: Automatic credit_rule reselection
+- **Timeout**: Helpful info with dashboard link for background task status
+
+All error handling is **automatic and transparent** — users receive natural language explanations with next steps.
 
 **Failure fallback by task type:**
 
@@ -724,8 +1145,16 @@ When task status = `failed` or any API/network error, send:
 | image_to_video | Wan 2.6 | Kling O1 (48pts) | Hailuo 2.0 i2v (25pts) |
 | image_to_video | Any | Wan 2.6 (25pts, most popular) | Vidu Q2 Pro (20pts) |
 | first_last / reference | Kling O1 | Kling 2.6 (80pts) | Veo 3.1 (70pts+) |
-| text_to_music | Suno | DouBao BGM (6pts) | DouBao Song (6pts) |
-| text_to_music | DouBao | Suno (21pts) | DouBao BGM/Song (互换) |
+| **text_to_music** 🎵 | **Suno** | **DouBao BGM (30pts, 背景音乐)** | **DouBao Song (30pts, 歌曲生成)** |
+| **text_to_music** 🎵 | **DouBao BGM** | **DouBao Song (30pts)** | **Suno (25pts, 功能最强)** |
+| **text_to_music** 🎵 | **DouBao Song** | **DouBao BGM (30pts)** | **Suno (25pts, 功能最强)** |
+
+**Music-specific failure guidance:**
+- If Suno fails → Recommend DouBao BGM (for background music) or DouBao Song (for songs)
+- If DouBao BGM fails → Try DouBao Song first (similar pricing), then Suno (more powerful)
+- If DouBao Song fails → Try DouBao BGM first (similar pricing), then Suno (more powerful)
+- For lyrics errors in Suno → Suggest simplifying lyrics or using `auto_lyrics=true`
+- For prompt length errors → Recommend 20-100 characters
 
 ---
 
@@ -733,21 +1162,42 @@ When task status = `failed` or any API/network error, send:
 
 > **Source: production `GET /open/v1/product/list` (2026-02-27).** Model count reduced significantly. Always query product list API at runtime.
 
-### Image Generation (3 models each)
+### Image Generation (4 models each)
 
 | Category | Name | model_id | Cost |
 |----------|------|----------|------|
 | **text_to_image** | SeeDream 4.5 🌟 | `doubao-seedream-4.5` | 5 pts |
+| text_to_image | Midjourney 🎨 | `midjourney` | 8/10 pts (480p/720p) |
 | text_to_image | Nano Banana2 💚 | `gemini-3.1-flash-image` | 4/6/10/13 pts |
 | text_to_image | Nano Banana Pro | `gemini-3-pro-image` | 10/10/18 pts |
 | **image_to_image** | SeeDream 4.5 🌟 | `doubao-seedream-4.5` | 5 pts |
+| image_to_image | Midjourney 🎨 | `midjourney` | 8/10 pts (480p/720p) |
 | image_to_image | Nano Banana2 💚 | `gemini-3.1-flash-image` | 4/6/10/13 pts |
 | image_to_image | Nano Banana Pro | `gemini-3-pro-image` | 10 pts |
 
+**Midjourney attribute_ids**: 5451/5452 (text_to_image), 5453/5454 (image_to_image)  
 **Nano Banana2 size options**: 512px (4pts), 1K (6pts), 2K (10pts), 4K (13pts)  
 **Nano Banana Pro size options**: 1K (10pts), 2K (10pts), 4K (18pts for t2i / 10pts for i2i)
 
-❌ **Removed**: SeeDream 3.0/4.0, Nano Banana (gemini-2.5), GPT Image 1.0/1.5, Wan 2.6 t2i/i2i, Midjourney, Imagen 4, SeedEdit 3.0
+#### Image Model Capabilities (Parameter Support)
+
+⚠️ **Critical**: Models have **varying parameter support**. Custom aspect ratios are now **supported by multiple models**.
+
+| Model | Custom Aspect Ratio | Max Resolution | Size Options | Notes |
+|-------|---------------------|----------------|--------------|-------|
+| **SeeDream 4.5** | ✅ (via virtual params) | 4K (adaptive) | 8 aspect ratios | Supports 1:1, 16:9, 9:16, 4:3, 3:4, 2:3, 3:2, 21:9 (5 pts) |
+| **Nano Banana2** | ✅ **Native support** 🆕 | 4K (4096×4096) | 512px/1K/2K/4K + aspect ratios | Supports 1:1, 16:9, 9:16, 4:3, 3:4; size via `attribute_id` |
+| **Nano Banana Pro** | ✅ **Native support** 🆕 | 4K (4096×4096) | 1K/2K/4K + aspect ratios | Supports 1:1, 16:9, 9:16, 4:3, 3:4; size via `attribute_id` |
+| **Midjourney** 🎨 | ❌ (1:1 only) | 1024px (square) | 480p/720p via `attribute_id` | Fixed 1024x1024, artistic style focus |
+
+**Key Capabilities**:
+- ✅ **Aspect ratio control**: **SeeDream 4.5** (virtual params), **Nano Banana Pro/2** (native support)
+- ❌ **8K**: Not supported by any model (max is 4K)
+- ✅ **Size control**: **Nano Banana2**, **Nano Banana Pro**, and **Midjourney** support multiple size options via different `attribute_id`s
+- ✅ **Budget option**: **Nano Banana2** is the cheapest at 4 pts for 512px, but 4K costs 13pts
+- 🎨 **Artistic styles**: **Midjourney** excels at creative, artistic, and illustration styles
+- 💡 **Best value**: **SeeDream 4.5** at 5pts offers aspect ratio flexibility; **Nano Banana2** 512px at 4pts for fastest/cheapest
+
 
 ### Video Generation
 
@@ -778,7 +1228,6 @@ When task status = `failed` or any API/network error, send:
 | | Google Veo 3.1 | `veo-3.1-generate-preview` | 70-330 pts |
 | | Others (4) | Vidu Q2, Pixverse V5.5/V5/V4.5 | — |
 
-❌ **Removed video models**: Vidu Q2 Turbo (viduq2-turbo), Wan 2.5/2.2 Plus, Kling 1.6/2.1/2.5, Sora 2 (non-Pro), Veo 3.0/3.1 Fast, SeeDance 1.0, Vidu Q1, Hailuo 2.3 Fast
 | text_to_video | SeeDance 1.5 Pro / 1.0 Pro | `doubao-seedance-1.5-pro` / `doubao-seedance-1.0-pro` | 16 / 15 pts |
 | text_to_video | Sora 2 Pro / Sora 2 | `sora-2-pro` / `sora-2` | 120 / 35 pts |
 | text_to_video | Kling O1 / 2.6 / 2.5 Turbo / 1.6 | `kling-video-o1` / `kling-v2-6` / `kling-v2-5-turbo` / `kling-v1-6` | 48 / 80 / 24 / 32 pts |
@@ -1438,7 +1887,9 @@ No image input. `src_img_url: []`, `input_images: []`.
 
 ### image_to_video / first_last_frame_to_video / reference_image_to_video
 ```json
-"src_img_url": ["https://first-frame.jpg", "https://last-frame.jpg"]
+{
+  "src_img_url": ["https://first-frame.jpg", "https://last-frame.jpg"]
+}
 ```
 Index 0 = first frame (or reference), index 1 = last frame (first_last_frame only).
 
@@ -1463,4 +1914,4 @@ Index 0 = first frame (or reference), index 1 = last frame (first_last_frame onl
 
 ## Complete Python Example
 
-See [examples.md](examples.md) for a full Python implementation covering all 7 task types.
+See the Python example sections throughout this documentation for implementation guidance covering all 7 task types.
