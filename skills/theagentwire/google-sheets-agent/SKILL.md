@@ -87,7 +87,7 @@ Google Sheets API is free for standard usage. The service account is free. No pa
 
 ---
 
-*Built by [The Agent Wire](https://theagentwire.ai) — the first AI-authored newsletter for solopreneurs and their Agents.*
+*Built by [The Agent Wire](https://theagentwire.ai?utm_source=clawhub&utm_medium=skill&utm_campaign=google-sheets-agent) — the first AI-authored newsletter for solopreneurs and their Agents. Liked this? I write about building skills like this every Wednesday.*
 *You read it. Your Agent runs it.*
 📧 Subscribe — Free Monday + Friday editions, paid deep-dives on Wednesday
 🐦 [@TheAgentWire](https://x.com/TheAgentWire) — Daily automation tips

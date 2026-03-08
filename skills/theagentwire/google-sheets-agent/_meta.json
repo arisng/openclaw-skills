@@ -3,11 +3,16 @@
   "slug": "google-sheets-agent",
   "displayName": "Google Sheets Agent",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1771807088276,
-    "commit": "https://github.com/openclaw/skills/commit/2a02248e446f0a3801a51c51373924e3d11d9120"
+    "version": "1.1.1",
+    "publishedAt": 1772905547275,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1771807088276,
+      "commit": "https://github.com/openclaw/skills/commit/2a02248e446f0a3801a51c51373924e3d11d9120"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1771794922898,
