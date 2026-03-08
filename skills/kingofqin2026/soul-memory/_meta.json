@@ -3,11 +3,16 @@
   "slug": "soul-memory",
   "displayName": "Soul Memory",
   "latest": {
-    "version": "3.2.3",
-    "publishedAt": 1772737987484,
-    "commit": "https://github.com/openclaw/skills/commit/8ed6b4724b4ed669fe4e288263fba4daabbf822b"
+    "version": "3.3.4",
+    "publishedAt": 1772874759668,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.2.3",
+      "publishedAt": 1772737987484,
+      "commit": "https://github.com/openclaw/skills/commit/8ed6b4724b4ed669fe4e288263fba4daabbf822b"
+    },
     {
       "version": "3.2.2",
       "publishedAt": 1771981297038,
