@@ -7,6 +7,13 @@ description: >-
   JSON, update an existing flow's actions, patch a flow definition, add actions
   to a flow, wire up connections, or generate a workflow definition from scratch.
   Requires a FlowStudio MCP subscription — see https://mcp.flowstudio.app
+metadata:
+  openclaw:
+    requires:
+      env:
+        - FLOWSTUDIO_MCP_TOKEN
+    primaryEnv: FLOWSTUDIO_MCP_TOKEN
+    homepage: https://mcp.flowstudio.app
 ---
 
 # Build & Deploy Power Automate Flows with FlowStudio MCP
@@ -42,7 +49,8 @@ def mcp(tool, **kwargs):
     payload = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
                           "params": {"name": tool, "arguments": kwargs}}).encode()
     req = urllib.request.Request(MCP_URL, data=payload,
-        headers={"x-api-key": MCP_TOKEN, "Content-Type": "application/json"})
+        headers={"x-api-key": MCP_TOKEN, "Content-Type": "application/json",
+                 "User-Agent": "FlowStudio-MCP/1.0"})
     try:
         resp = urllib.request.urlopen(req, timeout=120)
     except urllib.error.HTTPError as e:
@@ -270,7 +278,7 @@ else:
 
 ---
 
-## Step 6 — Verify the Deployment
+## Step 5 — Verify the Deployment
 
 ```python
 check = mcp("get_live_flow", environmentName=ENV, flowName=FLOW_ID)
@@ -285,7 +293,7 @@ print("Actions:", list(acts.keys()))
 
 ---
 
-## Step 7 — Test the Flow
+## Step 6 — Test the Flow
 
 > **MANDATORY**: Before triggering any test run, **ask the user for confirmation**.
 > Running a flow has real side effects — it may send emails, post Teams messages,

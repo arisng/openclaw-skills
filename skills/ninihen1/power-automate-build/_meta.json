@@ -3,9 +3,15 @@
   "slug": "power-automate-build",
   "displayName": "Power Automate Build",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772753702279,
-    "commit": "https://github.com/openclaw/skills/commit/6a83eebb00d5c44814a16830abeb1c7a123deb92"
+    "version": "1.1.0",
+    "publishedAt": 1772859077824,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772753702279,
+      "commit": "https://github.com/openclaw/skills/commit/6a83eebb00d5c44814a16830abeb1c7a123deb92"
+    }
+  ]
 }
