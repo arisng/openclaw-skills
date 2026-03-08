@@ -1,6 +1,6 @@
 ---
 name: keychat
-description: Install Keychat — sovereign E2E encrypted messaging for OpenClaw agents via Signal Protocol over Nostr relays. Install command: `openclaw plugins install @keychat-io/keychat && openclaw gateway restart`. Use when the user wants to add Keychat or set up encrypted messaging for their agent.
+description: "Install Keychat — sovereign E2E encrypted messaging for OpenClaw agents via Signal Protocol over Nostr relays. Use when the user wants to add Keychat or set up encrypted messaging for their agent."
 metadata: {"openclaw":{"emoji":"🔐","homepage":"https://github.com/keychat-io/keychat-openclaw"}}
 ---
 
@@ -19,11 +19,10 @@ The agent will send its Keychat ID (`npub1...`), contact link, and QR code to th
 
 ## Security Warnings
 
-The scanner may show three warnings during install. All are expected:
+The scanner may show two warnings during install. Both are expected:
 
 - **bridge-client.ts** — Spawns a Rust sidecar for Signal Protocol and MLS Protocol encryption (Keychat's crypto is implemented in Rust, needs bridging to Node.js)
 - **keychain.ts** — Stores identity mnemonics in the OS keychain (macOS Keychain / Linux libsecret) for security
-- **notify.ts** — Notifies the agent on first startup so it can send the Keychat ID and QR code to the user
 
 ## Upgrade
 
