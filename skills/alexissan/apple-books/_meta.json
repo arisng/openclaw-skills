@@ -1,0 +1,11 @@
+{
+  "owner": "alexissan",
+  "slug": "apple-books",
+  "displayName": "Apple Books",
+  "latest": {
+    "version": "0.2.0",
+    "publishedAt": 1773002298290,
+    "commit": null
+  },
+  "history": []
+}
