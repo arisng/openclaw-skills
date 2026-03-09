@@ -1,167 +1,114 @@
 ---
 name: pixeldojo
-description: Generate AI images and videos using PixelDojo API. Supports 60+ models including Flux 2, WAN, Veo 3.1, Imagen 4, Kling, and more. Handles async job submission, status polling, and automatic downloading of results.
+description: Access PixelDojo's API for AI image and video generation. Use when an agent needs to create images or videos, choose a model from the live PixelDojo catalog, check async job status, or download finished assets. PixelDojo is a subscription-based creative platform that exposes multiple generation models through one API, including general image, editing-oriented image, and video workflows.
 metadata:
-  {
-    "clawhub":
-      {
-        "requires": { 
-          "env": ["PIXELDOJO_API_KEY"],
-          "bins": ["curl", "jq"]
-        },
-        "homepage": "https://pixeldojo.ai",
-        "source": "https://github.com/blovett80/pixeldojo-skill"
-      }
-  }
+  author: Brian Lovett
+  homepage: https://pixeldojo.ai
+  source: https://pixeldojo.ai
+  openclaw:
+    requires:
+      env:
+        - PIXELDOJO_API_KEY
+      bins:
+        - curl
+        - jq
+        - python3
 ---
 
-# PixelDojo Skill
+# PixelDojo
 
-Generate AI images and videos using the PixelDojo API platform.
+Use PixelDojo's async API to generate and download AI images or videos.
 
 ## Setup
 
-1. **Get API Key:** Sign up at [https://pixeldojo.ai/api-platform](https://pixeldojo.ai/api-platform)
-2. **Buy Credits:** Purchase credits at [https://pixeldojo.ai/api-platform/buy-credits](https://pixeldojo.ai/api-platform/buy-credits)
-   - **$5** = ~800 images with P-Image model
-3. **Set Environment Variable:**
-   ```bash
-   export PIXELDOJO_API_KEY=your_api_key_here
-   ```
-   (Or copy `.env.example` to `.env` and fill in your key)
+Runtime requirements:
+- Environment variable: `PIXELDOJO_API_KEY`
+- Binaries: `curl`, `jq`, `python3`
+- Optional override: `PIXELDOJO_API_BASE`
 
-- **API Documentation:** [https://pixeldojo.ai/api-platform](https://pixeldojo.ai/api-platform)
-- **Base URL:** `https://pixeldojo.ai/api/v1`
-
-## Available Models
-
-### Image Models
-- `flux-1.1-pro` - Latest pro model with enhanced quality (recommended)
-- `flux-1.1-pro-ultra` - Highest quality Flux model with raw mode
-- `flux-dev` - Development model with configurable steps and LoRA support
-- `flux-krea-dev` - Photorealistic, avoids oversaturated AI look
-- `flux-kontext-pro` - Advanced model with editing capabilities
-- `flux-kontext-max` - Premium model with maximum performance
-
-### Video Models
-- `wan-2.6-flash` - Fast video generation
-- `wan-2.2` - Higher quality video
-- `veo-3.1` - Google's Veo 3.1 with native audio
-- `kling-2.5-turbo-pro` - Kling turbo
-- `kling-pro` - Kling professional
-- `minimax` - Minimax video
-
-## Core Operations
-
-### Generate Image
+Set the API key before running any helper:
 
 ```bash
-# Basic image generation
-bash ~/.openclaw/skills/pixeldojo/generate.sh image "a serene mountain landscape at sunset" flux-2
-
-# With options
-bash ~/.openclaw/skills/pixeldojo/generate.sh image "cyberpunk city" flux-2 --aspect-ratio 16:9 --output ~/Desktop/cyberpunk.png
+export PIXELDOJO_API_KEY=your_api_key_here
 ```
 
-### Generate Video
+Optional local env file:
 
 ```bash
-# Text-to-video
-bash ~/.openclaw/skills/pixeldojo/generate.sh video "ocean waves crashing on rocks" wan-2.6-flash --duration 5
-
-# Image-to-video
-bash ~/.openclaw/skills/pixeldojo/generate.sh video "make it cinematic" wan-2.6-flash --image-url https://example.com/image.png --duration 5
+cp ~/.openclaw/skills/pixeldojo/.env.example ~/.openclaw/skills/pixeldojo/.env
 ```
 
-### Check Job Status
+Default API base: `https://pixeldojo.ai/api/v1`
 
-```bash
-bash ~/.openclaw/skills/pixeldojo/status.sh job_abc123
-```
+## Workflow
 
-### List Available Models
+1. Check the live model catalog first.
+2. Pick a model that matches the requested workflow.
+3. Submit the job with `generate.sh` or the Nano Banana helper.
+4. Poll status until complete, then return the downloaded asset path.
+
+Do not guess model IDs.
+
+## Check the live catalog
 
 ```bash
 bash ~/.openclaw/skills/pixeldojo/models.sh
 ```
 
-## API Reference
+For a pinned snapshot of known-good model IDs and example picks, read:
+- `references/model-catalog.md`
 
-### Submit Job
-- **Endpoint:** `POST /api/v1/models/{model}/run`
-- **Headers:** `Authorization: Bearer {API_KEY}`, `Content-Type: application/json`
-- **Body (Image):**
-  ```json
-  {
-    "prompt": "description of image",
-    "aspect_ratio": "16:9"
-  }
-  ```
-- **Body (Video):**
-  ```json
-  {
-    "prompt": "description of video",
-    "image_url": "https://...",  // optional, for image-to-video
-    "duration": 5,                // seconds
-    "aspect_ratio": "16:9"
-  }
-  ```
-- **Response:**
-  ```json
-  {
-    "jobId": "job_abc123",
-    "status": "pending",
-    "statusUrl": "https://pixeldojo.ai/api/v1/jobs/job_abc123"
-  }
-  ```
-
-### Check Status
-- **Endpoint:** `GET /api/v1/jobs/{job_id}`
-- **Headers:** `Authorization: Bearer {API_KEY}`
-- **Response (completed):**
-  ```json
-  {
-    "jobId": "job_abc123",
-    "status": "completed",
-    "output": {
-      "image": "https://temp.pixeldojo.ai/...png",
-      "video": "https://temp.pixeldojo.ai/...mp4"
-    }
-  }
-  ```
-
-### Download Result
-Results are automatically downloaded to `~/Pictures/AI Generated/` with timestamped filenames for easy access.
-
-## Workflow
-
-1. **Submit:** Call generate endpoint, get job ID
-2. **Poll:** Check status URL every 2-5 seconds
-3. **Download:** Once `status === "completed"`, download from output URL
-4. **Save:** Store in workspace with descriptive filename
-
-## Error Handling
-
-- Rate limit: 10 requests/minute (contact support for higher)
-- Credits: Check dashboard for credit balance
-- Timeouts: Video generation can take 30-120 seconds
-
-## Example Usage
+## Generate an image
 
 ```bash
-# Generate a cyberpunk portrait
-bash ~/.openclaw/skills/pixeldojo/generate.sh image "cyberpunk samurai with neon lights, detailed, 8k" flux-2 --output ~/Desktop/samurai.png
-
-# Animate a photo
-bash ~/.openclaw/skills/pixeldojo/generate.sh video "slow motion drift, cinematic" wan-2.6-flash --image-url https://mycdn.com/photo.jpg --duration 5
+bash ~/.openclaw/skills/pixeldojo/generate.sh image "editorial product photo of a silver robot" flux-2-pro --aspect-ratio 16:9
 ```
 
-## Output Location
+Good defaults:
+- Best general image quality: `flux-2-max`
+- Prompt adherence and typography: `nano-banana-2`
+- Editing-oriented image work: `flux-kontext-pro`
 
-All generated files are saved to your **Pictures folder** for easy access:
+## Generate a video
+
+```bash
+bash ~/.openclaw/skills/pixeldojo/generate.sh video "cinematic ocean waves at sunset" seedance-1.5 --duration 5
+```
+
+Use `--image-url` for image-to-video models:
+
+```bash
+bash ~/.openclaw/skills/pixeldojo/generate.sh video "slow camera push-in" wan-2.6-flash --image-url https://example.com/input.png --duration 5
+```
+
+## Nano Banana helper
+
+Use this when the user specifically wants Nano Banana 2 or strong prompt adherence:
+
+```bash
+python3 ~/.openclaw/skills/pixeldojo/scripts/generate-nano-banana.py "clean ecommerce hero shot of running shoes" --aspect-ratio 16:9 --output ~/Desktop/shoes.png
+```
+
+## Check job status
+
+```bash
+bash ~/.openclaw/skills/pixeldojo/status.sh job_abc123
+```
+
+## Output paths
+
+Default download folders:
 - `~/Pictures/AI Generated/images/`
 - `~/Pictures/AI Generated/videos/`
 
-With format: `{timestamp}_{prompt_snippet}.{ext}`
+Override with:
 
-Use `--output <path>` to save to a custom location.
+```bash
+--output /path/to/file.png
+```
+
+## Notes
+
+- `generate.sh` supports `--aspect-ratio`, `--duration`, `--image-url`, `--output`, `--poll-interval`, and `--max-wait`.
+- `generate.sh` covers the shared prompt-based API flow. If a request needs model-specific editing payloads, inspect the live catalog and API behavior before improvising.
+- PixelDojo markets full commercial rights for generated output, but the user is still responsible for complying with the service terms and any third-party model restrictions.

@@ -1,23 +1,21 @@
 #!/bin/bash
 set -euo pipefail
 
-# PixelDojo Generation Script
+# PixelDojo generation helper
 # Usage: generate.sh <image|video> <prompt> <model> [options]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="${HOME}/.openclaw/workspace"
-# Default output to Pictures for easy access, fallback to workspace
 PICTURES_DIR="${HOME}/Pictures/AI Generated"
 OUTPUT_DIR="${PICTURES_DIR}"
-API_BASE="https://pixeldojo.ai/api/v1"
+API_BASE="${PIXELDOJO_API_BASE:-https://pixeldojo.ai/api/v1}"
 API_KEY="${PIXELDOJO_API_KEY:-}"
 
 if [[ -z "$API_KEY" ]]; then
-    echo "Error: PIXELDOJO_API_KEY environment variable not set"
+    echo "Error: PIXELDOJO_API_KEY is not set"
     exit 1
 fi
 
-# Parse arguments
 TYPE="${1:-}"
 PROMPT="${2:-}"
 MODEL="${3:-}"
@@ -26,16 +24,15 @@ if [[ -z "$TYPE" || -z "$PROMPT" || -z "$MODEL" ]]; then
     echo "Usage: generate.sh <image|video> <prompt> <model> [options]"
     echo ""
     echo "Options:"
-    echo "  --aspect-ratio <ratio>   Aspect ratio (16:9, 9:16, 1:1, 4:3, 3:4)"
-    echo "  --duration <seconds>     Video duration (1-10 seconds)"
-    echo "  --image-url <url>        Input image for image-to-video"
+    echo "  --aspect-ratio <ratio>   Aspect ratio, for example 16:9 or 1:1"
+    echo "  --duration <seconds>     Video duration in seconds"
+    echo "  --image-url <url>        Input image for image-to-video workflows"
     echo "  --output <path>          Custom output path"
-    echo "  --poll-interval <secs>   Polling interval (default: 3)"
-    echo "  --max-wait <seconds>     Maximum wait time (default: 300)"
+    echo "  --poll-interval <secs>   Polling interval, default 3"
+    echo "  --max-wait <seconds>     Maximum wait time, default 300"
     exit 1
 fi
 
-# Parse options
 ASPECT_RATIO="1:1"
 DURATION=""
 IMAGE_URL=""
@@ -77,7 +74,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Build request body using jq
 build_payload() {
     local payload
     if [[ "$TYPE" == "video" ]]; then
@@ -94,8 +90,8 @@ build_payload() {
     echo "$payload"
 }
 
-# Submit job
-echo "Submitting $TYPE generation job..."
+echo "Submitting PixelDojo ${TYPE} job..."
+echo "API base: $API_BASE"
 echo "Model: $MODEL"
 echo "Prompt: $PROMPT"
 
@@ -105,10 +101,9 @@ SUBMIT_RESPONSE=$(curl -sS -X POST "${API_BASE}/models/${MODEL}/run" \
     -d "$(build_payload)")
 
 JOB_ID=$(echo "$SUBMIT_RESPONSE" | jq -r '.jobId // empty')
-STATUS_URL=$(echo "$SUBMIT_RESPONSE" | jq -r '.statusUrl // empty')
 
 if [[ -z "$JOB_ID" || "$JOB_ID" == "null" ]]; then
-    echo "Error: Failed to submit job"
+    echo "Error: PixelDojo did not return a jobId"
     echo "Response: $SUBMIT_RESPONSE"
     exit 1
 fi
@@ -116,46 +111,43 @@ fi
 echo "Job ID: $JOB_ID"
 echo "Polling for completion..."
 
-# Poll for completion
 START_TIME=$(date +%s)
 while true; do
     CURRENT_TIME=$(date +%s)
     ELAPSED=$((CURRENT_TIME - START_TIME))
-    
+
     if [[ $ELAPSED -gt $MAX_WAIT ]]; then
-        echo "Error: Timeout after ${MAX_WAIT} seconds"
+        echo "Error: Timed out after ${MAX_WAIT} seconds"
         echo "Job ID: $JOB_ID"
         exit 1
     fi
-    
+
     STATUS_RESPONSE=$(curl -sS "${API_BASE}/jobs/${JOB_ID}" \
         -H "Authorization: Bearer ${API_KEY}")
-    
+
     STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.status // "unknown"')
-    
+
     if [[ "$STATUS" == "completed" ]]; then
-        echo "✓ Generation complete!"
+        echo "✓ Generation complete"
         break
     elif [[ "$STATUS" == "failed" ]]; then
         echo "✗ Generation failed"
         echo "Response: $STATUS_RESPONSE"
         exit 1
     fi
-    
+
     echo -n "."
     sleep "$POLL_INTERVAL"
 done
 
-# Extract output URL (handle both single and array formats)
 OUTPUT_URL=$(echo "$STATUS_RESPONSE" | jq -r '.output.image // .output.video // .output.images[0] // .output.videos[0] // empty')
 
 if [[ -z "$OUTPUT_URL" || "$OUTPUT_URL" == "null" ]]; then
-    echo "Error: No output URL in response"
+    echo "Error: No output URL found in job response"
     echo "Response: $STATUS_RESPONSE"
     exit 1
 fi
 
-# Determine file extension
 if [[ "$TYPE" == "video" ]]; then
     EXT="mp4"
     SUBDIR="videos"
@@ -164,21 +156,19 @@ else
     SUBDIR="images"
 fi
 
-# Create output directory
 mkdir -p "${OUTPUT_DIR}/${SUBDIR}"
 
-# Generate filename
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 PROMPT_SNIPPET=$(echo "$PROMPT" | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | cut -c1-30 | sed 's/[^a-z0-9_]//g')
 FILENAME="${TIMESTAMP}_${PROMPT_SNIPPET}.${EXT}"
 
 if [[ -n "$CUSTOM_OUTPUT" ]]; then
     OUTPUT_PATH="$CUSTOM_OUTPUT"
+    mkdir -p "$(dirname "$OUTPUT_PATH")"
 else
     OUTPUT_PATH="${OUTPUT_DIR}/${SUBDIR}/${FILENAME}"
 fi
 
-# Download result
 echo ""
 echo "Downloading result..."
 curl -sS -L "$OUTPUT_URL" -o "$OUTPUT_PATH"
@@ -192,7 +182,6 @@ else
     exit 1
 fi
 
-# Output JSON for programmatic use
 cat <<EOF
 {
   "success": true,

@@ -1,14 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-# PixelDojo Job Status Checker
+# PixelDojo job status helper
 # Usage: status.sh <job_id>
 
-API_BASE="https://pixeldojo.ai/api/v1"
+API_BASE="${PIXELDOJO_API_BASE:-https://pixeldojo.ai/api/v1}"
 API_KEY="${PIXELDOJO_API_KEY:-}"
 
 if [[ -z "$API_KEY" ]]; then
-    echo "Error: PIXELDOJO_API_KEY environment variable not set"
+    echo "Error: PIXELDOJO_API_KEY is not set"
     exit 1
 fi
 
