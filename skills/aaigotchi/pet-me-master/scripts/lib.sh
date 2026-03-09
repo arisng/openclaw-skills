@@ -310,6 +310,7 @@ discover_pettable_gotchi_ids() {
   local wallet="${1:-}"
   local -a owned_ids=()
   local -a delegated_ids=()
+  local -a config_ids=()
 
   load_config
 
@@ -321,8 +322,9 @@ discover_pettable_gotchi_ids() {
 
   mapfile -t owned_ids < <(discover_owned_gotchi_ids "$wallet")
   mapfile -t delegated_ids < <(discover_delegated_gotchi_ids "$wallet")
+  config_ids=("${GOTCHI_IDS[@]}")
 
-  printf '%s\n' "${owned_ids[@]}" "${delegated_ids[@]}" | awk '/^[0-9]+$/{if(!seen[$1]++) print $1}'
+  printf '%s\n' "${owned_ids[@]}" "${delegated_ids[@]}" "${config_ids[@]}" | awk '/^[0-9]+$/{if(!seen[$1]++) print $1}'
 }
 
 resolve_reminder_chat_id() {

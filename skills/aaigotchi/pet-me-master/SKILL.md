@@ -76,6 +76,8 @@ This skill submits transactions directly to Bankr API and resolves API key from:
   - Any pet action routes to batch mode
 - `./scripts/check-and-remind.sh`
 - `./scripts/auto-pet-fallback.sh`
+- `./scripts/auto-pet-at-cooldown.sh`
+  - Waits until all discovered owned+delegated gotchis are ready (re-check loop for desync), then runs batch pet and sends Telegram with total count + petted IDs
 - `./scripts/schedule-dynamic-check.sh`
 
 ## Natural-Language Routing
