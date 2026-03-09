@@ -4,8 +4,8 @@ description: Hyperliquid trading plugin with background position monitoring. Exe
 license: MIT
 compatibility: Requires Node.js 22+, network access to api.hyperliquid.xyz
 homepage: https://www.npmjs.com/package/openbroker
-metadata: {"author": "monemetrics", "version": "1.0.45", "openclaw": {"requires": {"bins": ["openbroker"], "env": ["HYPERLIQUID_PRIVATE_KEY"]}, "primaryEnv": "HYPERLIQUID_PRIVATE_KEY", "install": [{"id": "node", "kind": "node", "package": "openbroker", "bins": ["openbroker"], "label": "Install openbroker (npm)"}]}}
-allowed-tools: ob_account ob_positions ob_funding ob_markets ob_search ob_spot ob_fills ob_orders ob_order_status ob_fees ob_candles ob_funding_history ob_trades ob_rate_limit ob_buy ob_sell ob_limit ob_trigger ob_tpsl ob_cancel ob_twap ob_bracket ob_chase ob_watcher_status Bash(openbroker:*)
+metadata: {"author": "monemetrics", "version": "1.0.49", "openclaw": {"requires": {"bins": ["openbroker"], "env": ["HYPERLIQUID_PRIVATE_KEY"]}, "primaryEnv": "HYPERLIQUID_PRIVATE_KEY", "install": [{"id": "node", "kind": "node", "package": "openbroker", "bins": ["openbroker"], "label": "Install openbroker (npm)"}]}}
+allowed-tools: ob_account ob_positions ob_funding ob_markets ob_search ob_spot ob_fills ob_orders ob_order_status ob_fees ob_candles ob_funding_history ob_trades ob_rate_limit ob_funding_scan ob_buy ob_sell ob_limit ob_trigger ob_tpsl ob_cancel ob_twap ob_bracket ob_chase ob_watcher_status Bash(openbroker:*)
 ---
 
 # Open Broker - Hyperliquid Trading CLI
@@ -40,16 +40,26 @@ openbroker approve-builder --check  # Check builder fee status (for troubleshoot
 ```
 
 The `setup` command offers three modes:
-1. **Import existing key** — use a private key you already have (master wallet)
-2. **Generate new wallet** — create a fresh master wallet
-3. **Generate API wallet** (recommended for agents) — creates a restricted wallet that can trade but cannot withdraw
+1. **Generate fresh wallet** (recommended for agents) — creates a dedicated trading wallet with builder fee auto-approved. No browser steps needed — just fund with USDC and start trading.
+2. **Import existing key** — use a private key you already have
+3. **Generate API wallet** — creates a restricted wallet that can trade but cannot withdraw. Requires browser approval from a master wallet.
 
 For options 1 and 2, setup saves config and approves the builder fee automatically.
 For option 3 (API wallet), see the API Wallet Setup section below.
 
-### API Wallet Setup (Recommended for Agents)
+### Fresh Wallet Setup (Recommended for Agents)
 
-API wallets can place trades on behalf of a master account but **cannot withdraw funds**. This is the safest option for automated agents.
+The simplest setup for agents. A fresh wallet is generated, the builder fee is auto-approved, and the agent is ready to trade immediately after funding.
+
+**Flow:**
+1. Run `openbroker setup` and choose option 1 ("Generate a fresh wallet")
+2. The CLI generates a wallet, saves the config, and approves the builder fee automatically
+3. Fund the wallet with USDC on Arbitrum, then deposit at https://app.hyperliquid.xyz/
+4. Start trading
+
+### API Wallet Setup (Alternative)
+
+API wallets can place trades on behalf of a master account but **cannot withdraw funds**. Use this if you prefer to keep funds in your existing wallet and only delegate trading access.
 
 **Flow:**
 1. Run `openbroker setup` and choose option 3 ("Generate API wallet")
@@ -160,7 +170,24 @@ openbroker trades --coin BTC --top 50     # Last 50 trades
 openbroker rate-limit                     # API usage and capacity
 ```
 
+### Funding Rate Scanner (Cross-Dex)
+```bash
+openbroker funding-scan                          # Scan all dexes, >25% threshold
+openbroker funding-scan --threshold 50 --pairs   # Show opposing funding pairs
+openbroker funding-scan --hip3-only --top 20     # HIP-3 only
+openbroker funding-scan --watch --interval 120   # Re-scan every 2 minutes
+```
+
 ## Trading Commands
+
+### HIP-3 Perp Trading
+All trading commands support HIP-3 assets using `dex:COIN` syntax:
+```bash
+openbroker buy --coin xyz:CL --size 1              # Buy crude oil on xyz dex
+openbroker sell --coin xyz:BRENTOIL --size 1        # Sell brent oil
+openbroker limit --coin xyz:GOLD --side buy --size 0.1 --price 2500
+openbroker funding-arb --coin xyz:CL --size 5000    # Funding arb on HIP-3
+```
 
 ### Market Orders (Quick)
 ```bash
