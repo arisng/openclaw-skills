@@ -1,0 +1,11 @@
+{
+  "owner": "milleniumgenai",
+  "slug": "coder-openclaw-agent",
+  "displayName": "Coder for OpenClaw",
+  "latest": {
+    "version": "0.1.3",
+    "publishedAt": 1773004008991,
+    "commit": null
+  },
+  "history": []
+}
