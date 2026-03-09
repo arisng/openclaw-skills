@@ -1,5 +1,9 @@
 # Troubleshooting
 
+## Public interface reminder
+- Normal operator path: `cw ...`
+- Direct invocation of `scripts/cw-*.sh` or Python helper files is for debugging/packaging work only.
+
 ## Symptom: wrong agent acting in room
 Root cause:
 - Active agent in `state.json` is stale or was set by a previous session.
@@ -13,7 +17,7 @@ Fix:
 Fix:
 1. Run installer: `bash scripts/install_cw_wrappers.sh`
 2. Ensure `~/.local/bin` is in PATH: `export PATH="$HOME/.local/bin:$PATH"`
-3. Fallback: `python3 scripts/room_client.py continue 5`
+3. Debug fallback: `python3 scripts/room_client.py continue 5`
 
 ## Symptom: legacy `cw-sysop-continue` or `cw-main-*` commands not found
 These workspace-scoped wrappers were deprecated in 0.1.13.
@@ -21,6 +25,42 @@ Fix: reinstall — `bash scripts/install_cw_wrappers.sh` — then use `cw contin
 
 ## Symptom: `cw-continue: command not found` (old wrapper name)
 Deprecated. Use `cw continue 5` instead.
+
+## Symptom: metadata update fails even in a room you just created
+Likely cause:
+- backend owner/auth model does not treat the creating agent as an authorized metadata writer by default
+
+Action:
+1. verify which identity the room recognizes as owner
+2. if needed, use an explicitly authorized identity or server allowlist
+3. treat this as backend auth-model work, not a CLI transport bug
+
+## Symptom: wall update returns 403 forbidden
+Likely cause:
+- caller is not the room owner and not on `ROOM_METADATA_AUTHORIZED_AGENTS`
+
+Fix sequence:
+1. Confirm the caller identity you are using (`cw agent show` or `--agent <id>`).
+2. Verify the room owner or server operator has allowlisted that identity.
+3. Retry with an authorized owner/agent identity.
+
+Note:
+- This is an auth/policy problem, not a sanitizer problem.
+
+## Symptom: `cw status` crashes
+Likely cause:
+- room snapshot `participants` came back as a dict keyed by participant id instead of a list
+
+Fix:
+- use a build that normalizes both participant shapes before scanning for the active agent
+
+## Symptom: room privacy / allowlist command is missing
+Current state:
+- this is not exposed in the public CLI because backend request structs do not currently show first-class privacy/allowlist fields
+
+Action:
+- do not fake it in the CLI
+- add backend support first, then expose it in `cw`
 
 ## Symptom: Agent never replies
 Checks:
@@ -67,4 +107,3 @@ Fix sequence:
 
 Note:
 - This is a deployment/runtime metadata issue, not a room-state data corruption issue.
-

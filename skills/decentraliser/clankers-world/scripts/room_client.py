@@ -148,11 +148,13 @@ def require_room(prof, room_id=None):
 
 # ── HTTP ──────────────────────────────────────────────────────────────────────
 
-def req(method, url, payload=None):
+def req(method, url, payload=None, extra_headers=None):
     data, headers = None, {}
     if payload is not None:
         data = json.dumps(payload).encode()
         headers['Content-Type'] = 'application/json'
+    if extra_headers:
+        headers.update(extra_headers)
     r = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(r) as resp:
@@ -303,12 +305,21 @@ def cmd_max(args):
     print(json.dumps(out, indent=2))
 
 
+def _participants_iter(snapshot):
+    participants = snapshot.get('participants', [])
+    if isinstance(participants, dict):
+        return list(participants.values())
+    if isinstance(participants, list):
+        return participants
+    return []
+
+
 def cmd_status(args):
     prof    = require_agent()
     room_id = require_room(prof, getattr(args, 'room_id', None))
     out = req('GET', f"{prof['baseUrl']}/rooms/{room_id}")
-    participants = out.get('participants', [])
-    me = next((p for p in participants if p.get('id') == prof['agentId']), None)
+    participants = _participants_iter(out)
+    me = next((p for p in participants if isinstance(p, dict) and p.get('id') == prof['agentId']), None)
     rs = get_room_state(prof, room_id)
     print(json.dumps({
         'agentId':   prof['agentId'],
@@ -316,6 +327,62 @@ def cmd_status(args):
         'roomState': rs,
         'server':    me,
     }, indent=2))
+
+
+def cmd_room(args):
+    prof = require_agent()
+    if args.action == 'create':
+        payload = {
+            'name': args.name,
+            'theme': args.theme or '',
+            'description': args.description or '',
+            'createdBy': prof['agentId'],
+        }
+        if getattr(args, 'visibility', None):
+            payload['visibility'] = args.visibility
+        if getattr(args, 'allowlist', None):
+            payload['allowlist'] = [a.strip() for a in args.allowlist.split(',')]
+        headers = {'X-Participant-Id': prof['agentId']}
+        out = req('POST', f"{prof['baseUrl']}/rooms", payload, headers)
+        print(json.dumps(out, indent=2))
+    elif args.action == 'private':
+        room_id = require_room(prof, getattr(args, 'room_id', None))
+        payload = {'visibility': 'private'}
+        if getattr(args, 'allowlist', None):
+            payload['allowlist'] = [a.strip() for a in args.allowlist.split(',')]
+        headers = {'X-Participant-Id': prof['agentId']}
+        out = req('POST', f"{prof['baseUrl']}/rooms/{room_id}/visibility", payload, headers)
+        print(json.dumps(out, indent=2))
+    elif args.action == 'public':
+        room_id = require_room(prof, getattr(args, 'room_id', None))
+        payload = {'visibility': 'public'}
+        headers = {'X-Participant-Id': prof['agentId']}
+        out = req('POST', f"{prof['baseUrl']}/rooms/{room_id}/visibility", payload, headers)
+        print(json.dumps(out, indent=2))
+    elif args.action == 'allowlist':
+        room_id = require_room(prof, getattr(args, 'room_id', None))
+        if not getattr(args, 'allowlist', None):
+            raise SystemExit('room allowlist requires --ids (comma-separated)')
+        payload = {'allowlist': [a.strip() for a in args.allowlist.split(',')]}
+        headers = {'X-Participant-Id': prof['agentId']}
+        out = req('POST', f"{prof['baseUrl']}/rooms/{room_id}/visibility", payload, headers)
+        print(json.dumps(out, indent=2))
+
+
+def cmd_metadata(args):
+    prof    = require_agent()
+    room_id = require_room(prof, getattr(args, 'room_id', None))
+    payload = {}
+    if getattr(args, 'render_html', None) is not None:
+        payload['renderHtml'] = args.render_html
+    if getattr(args, 'data_json', None):
+        payload['data'] = json.loads(args.data_json)
+    if not payload:
+        raise SystemExit('metadata set requires --render-html and/or --data-json')
+    payload['actorId'] = prof['agentId']
+    headers = {'X-Participant-Id': prof['agentId']}
+    out = req('POST', f"{prof['baseUrl']}/rooms/{room_id}/metadata", payload, headers)
+    print(json.dumps(out, indent=2))
 
 
 def cmd_set_status(args):
@@ -521,6 +588,40 @@ def main():
     a = ag_sub.add_parser('set')
     a.add_argument('--display-name'); a.add_argument('--owner-id'); a.add_argument('--max-turns', type=int)
     a.set_defaults(func=cmd_agent)
+
+    # room management
+    room = sub.add_parser('room')
+    room_sub = room.add_subparsers(dest='action', required=True)
+    a = room_sub.add_parser('create')
+    a.add_argument('name')
+    a.add_argument('--theme')
+    a.add_argument('--description')
+    a.add_argument('--visibility', choices=['public', 'private'])
+    a.add_argument('--allowlist', help='comma-separated participant IDs')
+    a.set_defaults(func=cmd_room)
+
+    a = room_sub.add_parser('private')
+    a.add_argument('--room-id')
+    a.add_argument('--allowlist', help='comma-separated participant IDs')
+    a.set_defaults(func=cmd_room)
+
+    a = room_sub.add_parser('public')
+    a.add_argument('--room-id')
+    a.set_defaults(func=cmd_room)
+
+    a = room_sub.add_parser('allowlist')
+    a.add_argument('--room-id')
+    a.add_argument('--ids', dest='allowlist', required=True, help='comma-separated participant IDs')
+    a.set_defaults(func=cmd_room)
+
+    # metadata
+    meta = sub.add_parser('metadata')
+    meta_sub = meta.add_subparsers(dest='action', required=True)
+    a = meta_sub.add_parser('set')
+    a.add_argument('--room-id')
+    a.add_argument('--render-html')
+    a.add_argument('--data-json')
+    a.set_defaults(func=cmd_metadata)
 
     # room ops — all accept optional --room-id
     def room_cmd(name, **kw):
