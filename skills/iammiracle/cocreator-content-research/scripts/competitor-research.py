@@ -27,7 +27,7 @@ def make_request(url: str, params: dict, api_key: str) -> dict:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
         return {}
 
-def scrape_tiktok_competitors(handles: List[str], api_key: str) -> Dict:
+def scrape_tiktok_competitors(handles: List[str], api_key: str, format_filter: str = "both") -> Dict:
     results = {}
     for handle in handles:
         profile = make_request("https://api.scrapecreators.com/v1/tiktok/profile", {"handle": handle}, api_key)
@@ -35,28 +35,36 @@ def scrape_tiktok_competitors(handles: List[str], api_key: str) -> Dict:
         
         # Extract basic stats
         stats = profile.get("stats", {})
-        video_list = videos.get("data", [])
+        # The API returns 'aweme_list' for TikTok profile videos
+        video_list = videos.get("aweme_list", videos.get("data", []))
         
-        # Sort videos by play count to find viral hooks
-        sorted_videos = sorted(video_list, key=lambda v: v.get("stats", {}).get("playCount", 0), reverse=True)
+        # Filter by format
+        if format_filter == "video":
+            video_list = [v for v in video_list if not (bool(v.get("image_infos")) or v.get("aweme_type") in [61, 68, 150])]
+        elif format_filter == "slideshow":
+            video_list = [v for v in video_list if bool(v.get("image_infos")) or v.get("aweme_type") in [61, 68, 150]]
+        
+        # Sort videos by play_count to find viral hooks
+        sorted_videos = sorted(video_list, key=lambda v: v.get("statistics", {}).get("play_count", 0), reverse=True)
         top_videos = sorted_videos[:3]
         
-        avg_views = sum(v.get("stats", {}).get("playCount", 0) for v in video_list) / len(video_list) if video_list else 0
+        avg_views = sum(v.get("statistics", {}).get("play_count", 0) for v in video_list) / len(video_list) if video_list else 0
         
         results[handle] = {
             "followers": stats.get("followerCount", 0),
             "average_recent_views": int(avg_views),
             "top_recent_hooks": [
                 {
-                    "url": f"https://www.tiktok.com/@{handle}/video/{v.get('id')}",
+                    "url": f"https://www.tiktok.com/@{handle}/video/{v.get('aweme_id', v.get('id', ''))}",
+                    "is_slideshow": bool(v.get("image_infos")) or v.get("aweme_type") in [61, 68, 150],
                     "caption": v.get("desc", ""),
-                    "views": v.get("stats", {}).get("playCount", 0)
+                    "views": v.get("statistics", {}).get("play_count", 0)
                 } for v in top_videos
             ]
         }
     return results
 
-def scrape_ig_competitors(handles: List[str], api_key: str) -> Dict:
+def scrape_ig_competitors(handles: List[str], api_key: str, format_filter: str = "both") -> Dict:
     results = {}
     for handle in handles:
         profile = make_request("https://api.scrapecreators.com/v1/instagram/profile", {"handle": handle}, api_key)
@@ -64,6 +72,12 @@ def scrape_ig_competitors(handles: List[str], api_key: str) -> Dict:
         
         stats = profile.get("edge_followed_by", {}).get("count", 0)
         post_list = posts_data.get("items", [])
+        
+        # Filter by format
+        if format_filter == "video":
+            post_list = [p for p in post_list if p.get("media_type") != 8]
+        elif format_filter == "slideshow":
+            post_list = [p for p in post_list if p.get("media_type") == 8]
         
         # Sort by play_count or like_count
         sorted_posts = sorted(
@@ -78,6 +92,7 @@ def scrape_ig_competitors(handles: List[str], api_key: str) -> Dict:
             "top_recent_hooks": [
                 {
                     "url": f"https://www.instagram.com/p/{p.get('code')}/",
+                    "is_slideshow": p.get("media_type") == 8,
                     "caption": p.get("caption", {}).get("text", "") if p.get("caption") else "",
                     "views_or_likes": p.get("play_count") or p.get("like_count", 0)
                 } for p in top_posts
@@ -89,6 +104,7 @@ def main():
     parser = argparse.ArgumentParser(description="Analyze competitor profiles and extract top hooks.")
     parser.add_argument("--platform", choices=["tiktok", "instagram"], required=True)
     parser.add_argument("--handles", nargs="+", required=True, help="List of competitor handles (e.g., @user1 @user2)")
+    parser.add_argument("--format", choices=["video", "slideshow", "both"], default="both", help="Filter by content format")
     parser.add_argument("--api-key", help="ScrapeCreators API Key (overrides SCRAPE_CREATORS_API_KEY env var)")
     
     args = parser.parse_args()
@@ -102,9 +118,9 @@ def main():
     clean_handles = [h.replace("@", "") for h in args.handles]
     
     if args.platform == "tiktok":
-        data = scrape_tiktok_competitors(clean_handles, api_key)
+        data = scrape_tiktok_competitors(clean_handles, api_key, args.format)
     else:
-        data = scrape_ig_competitors(clean_handles, api_key)
+        data = scrape_ig_competitors(clean_handles, api_key, args.format)
         
     print(json.dumps({
         "status": "success",

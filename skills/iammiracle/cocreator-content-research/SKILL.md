@@ -34,15 +34,24 @@ This skill provides agents with the ability to gather raw intelligence on social
 ## Capabilities
 
 ### 1. Broad Content Discovery (Keywords & Hashtags)
-Use this to find top-performing hooks for a specific niche or topic. It returns the top 5 most viral videos/reels and their captions.
+Use this to find top-performing content. 
+**Agent Instructions for Keyword Search:**
+- **DO NOT** use the same hardcoded keyword (like "affirmations") every time.  
+- **ALWAYS** brainstorm 3-5 diverse keywords based on the user's app (e.g., if it's an affirmation app, try searching "mindset shift", "daily routine", "self healing", "morning motivation").
+- Use time frames (`--date-posted`) to find recent trends, and test different sorting methods. 
+- Use the `--format` filter (`video`, `slideshow`, or `both`) if the user specifically requests only one type of content.
+- **CRITICAL:** The script returns an `is_slideshow` boolean and a `video_url`. Use this to distinguish between video trends and slideshow trends.
 
 ```bash
-uv run {baseDir}/scripts/keyword-search.py --platform tiktok --type keyword --query "dinner recipes"
-uv run {baseDir}/scripts/keyword-search.py --platform instagram --type keyword --query "dinner recipes"
+uv run {baseDir}/scripts/keyword-search.py --platform tiktok --type keyword --query "morning routine" --date-posted this-month --sort-by most-liked --format slideshow
+uv run {baseDir}/scripts/keyword-search.py --platform instagram --type keyword --query "morning routine" --format video
 ```
 
 ### 2. Competitor Hook Research
-Use this to analyze specific competitor handles. It returns their follower counts, average views, and their 3 most viral hooks.
+Use this to analyze specific competitor handles. 
+**Agent Instructions for Competitor Research:**
+- **ALWAYS** ask the user if they have specific competitors or creator profiles they want you to check before you assume.
+- If they don't know, brainstorm potential top creators in their niche using the keyword search first, extract their handles, and then run competitor research on them.
 
 ```bash
 uv run {baseDir}/scripts/competitor-research.py --platform tiktok --handles user1 user2 user3
