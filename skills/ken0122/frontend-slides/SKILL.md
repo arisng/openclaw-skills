@@ -323,14 +323,6 @@ Use content from Phase 1 and style from Phase 2. If no images, generate text-onl
 
 ---
 
-## Related Skills
-
-- **learn** — FORZARA.md for the presentation
-- **frontend-design** — Complex interactive pages beyond slides
-- **design-and-refine:design-lab** — Component design iteration
-
----
-
 ## Example Flows
 
 **New presentation:** User wants pitch/solution deck → ask purpose, length, content, images, editing → (if images) evaluate, outline, confirm → ask vibe → 3 previews → user picks style → (if images) run Pillow ops → generate HTML → open in browser.
