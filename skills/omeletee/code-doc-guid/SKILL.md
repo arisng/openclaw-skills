@@ -39,19 +39,25 @@ All commands are run via `python scripts/codebase_manager.py <command> [args]`.
 Use this to locate code by name or intent (docstring).
 
 *   **Command**: `search <query>`
-*   **Example**: `search "retry mechanism"` (Semantic) or `search "UserAuth"` (Exact)
-*   **Output**: List of matching files, line numbers, and docstrings.
-*   **Next Step**: Use `Read` tool on the specific file and line.
+*   **Example**: `search "UserAuth"`
+*   **Output**: JSONL format containing file paths, symbol names, and docstrings.
+*   **Action**: Use this to find the *exact file path* before reading it.
 
-### 2. `inspect` - Analyze Dependencies
+### 2. `inspect` - Analyze Dependencies & Risk
 Use this to understand the impact of a change.
 
 *   **Command**: `inspect <filename_fragment>`
 *   **Example**: `inspect "auth_service"`
-*   **Output**:
-    *   **Layer**: Architectural depth (Layer 0 = Base, Layer N = Business).
-    *   **Used by**: Who depends on this file? (Upstream/Impact analysis).
-    *   **Depends on**: What does this file use? (Downstream/Prerequisite analysis).
+*   **Output (JSON)**:
+    *   `risk_score`: **HIGH** / **MEDIUM** / **LOW**.
+    *   `doc_file`: Path to the detailed report (e.g., `.trae/codeguiddoc.md`).
+*   **Action Guidelines**:
+    1.  **Read the JSON summary** first.
+    2.  **IF RISK IS HIGH**:
+        *   **STOP**. Do not modify code yet.
+        *   **READ** the generated markdown file (`doc_file`). It contains a **Mermaid Graph** and full dependency list.
+        *   **SHOW** the Mermaid graph to the user (if possible) or summarize the impact: "This change affects 25 files, including core modules A and B."
+        *   **ASK** for confirmation.
 
 ### 3. `update` - Refresh Index
 Use this after **ANY** file modification.

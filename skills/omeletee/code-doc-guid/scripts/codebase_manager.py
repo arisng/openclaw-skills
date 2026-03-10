@@ -682,66 +682,142 @@ class CodebaseManager:
 
     def search(self, query: str):
         cur = self.db.conn.cursor()
+        results = []
+        
         # Try FTS first
         try:
-            print(f"Searching for '{query}'...")
             cur.execute("""
-                SELECT file_path, symbol_name, doc 
+                SELECT file_path, symbol_name, doc, rank
                 FROM search_index 
                 WHERE search_index MATCH ? 
                 ORDER BY rank LIMIT 10
             """, (query,))
-            results = cur.fetchall()
-            if results:
-                print(f"Found {len(results)} matches via Full-Text Search:")
-                for r in results:
-                    print(f"  - {r['symbol_name']} in {os.path.basename(r['file_path'])}")
-                    print(f"    Doc: {r['doc'][:100] if r['doc'] else 'No doc'}")
-                return
+            rows = cur.fetchall()
+            if rows:
+                for r in rows:
+                    results.append({
+                        "file": r['file_path'],
+                        "symbol": r['symbol_name'],
+                        "doc": r['doc'],
+                        "score": r['rank']
+                    })
         except Exception:
             pass
         
-        # Fallback to exact match
-        print("Falling back to exact symbol match...")
-        cur.execute("""
-            SELECT f.path, s.name, s.line_start, s.doc 
-            FROM symbols s 
-            JOIN files f ON s.file_id = f.id 
-            WHERE s.name LIKE ? LIMIT 10
-        """, (f"%{query}%",))
-        results = cur.fetchall()
-        for r in results:
-            print(f"  - {r['name']} ({os.path.basename(r['path'])}:{r['line_start']})")
+        # Fallback to exact match if no FTS results
+        if not results:
+            cur.execute("""
+                SELECT f.path, s.name, s.line_start, s.doc 
+                FROM symbols s 
+                JOIN files f ON s.file_id = f.id 
+                WHERE s.name LIKE ? LIMIT 10
+            """, (f"%{query}%",))
+            rows = cur.fetchall()
+            for r in rows:
+                results.append({
+                    "file": r['path'],
+                    "symbol": r['name'],
+                    "line": r['line_start'],
+                    "doc": r['doc']
+                })
+
+        # Output as JSONL for AI consumption
+        if not results:
+            print(json.dumps({"error": "No matches found", "query": query}))
+        else:
+            for res in results:
+                print(json.dumps(res))
 
     def inspect(self, file_pattern: str):
         cur = self.db.conn.cursor()
-        # Find file
-        cur.execute("SELECT id, path, layer FROM files WHERE path LIKE ? LIMIT 1", (f"%{file_pattern}%",))
+        
+        # Find file (support partial match)
+        cur.execute("SELECT id, path, layer, mtime FROM files WHERE path LIKE ? OR path LIKE ? LIMIT 1", 
+                   (f"%{file_pattern}", f"%/{file_pattern}"))
         f = cur.fetchone()
+        
         if not f:
-            print("File not found.")
+            print(json.dumps({"error": "File not found", "pattern": file_pattern}))
             return
 
-        print(f"File: {f['path']}")
-        print(f"Layer: {f['layer']}")
+        file_id = f['id']
+        file_path = f['path']
+        layer = f['layer']
         
-        # Upstream (Who calls me?)
+        # 1. Upstream (Who imports me?) - Impact Analysis
         cur.execute("""
-            SELECT f.path FROM dependencies d 
+            SELECT f.path, d.count FROM dependencies d 
             JOIN files f ON d.source_file_id = f.id 
             WHERE d.target_file_id = ?
-        """, (f['id'],))
-        upstream = [os.path.basename(r['path']) for r in cur.fetchall()]
-        print(f"Used by ({len(upstream)}): {', '.join(upstream[:5])}{'...' if len(upstream)>5 else ''}")
-
-        # Downstream (Who do I call?)
+        """, (file_id,))
+        upstream_rows = cur.fetchall()
+        upstream = [r['path'] for r in upstream_rows]
+        
+        # 2. Downstream (Who do I import?) - Dependency Analysis
         cur.execute("""
             SELECT f.path FROM dependencies d 
             JOIN files f ON d.target_file_id = f.id 
             WHERE d.source_file_id = ?
-        """, (f['id'],))
-        downstream = [os.path.basename(r['path']) for r in cur.fetchall()]
-        print(f"Depends on ({len(downstream)}): {', '.join(downstream[:5])}{'...' if len(downstream)>5 else ''}")
+        """, (file_id,))
+        downstream = [r['path'] for r in cur.fetchall()]
+        
+        # 3. Symbols defined in this file
+        cur.execute("SELECT name, type, line_start FROM symbols WHERE file_id = ?", (file_id,))
+        symbols = [{"name": r['name'], "type": r['type'], "line": r['line_start']} for r in cur.fetchall()]
+
+        # 4. Risk Calculation
+        # Heuristic: High impact if used by many files, or if it's a core layer (0-1) used by upper layers
+        impact_count = len(upstream)
+        risk_score = "LOW"
+        if impact_count > 5: risk_score = "MEDIUM"
+        if impact_count > 20: risk_score = "HIGH"
+        if layer == 0 and impact_count > 0: risk_score = "HIGH" # Core util modification is risky
+        
+        # 5. Generate External Doc (codeguiddoc.md)
+        doc_path = os.path.join(self.trae_dir, "codeguiddoc.md")
+        with open(doc_path, "w", encoding="utf-8") as f:
+            f.write(f"# Analysis: {os.path.basename(file_path)}\n\n")
+            f.write(f"**Risk Score**: {risk_score} (Impact: {impact_count} files)\n")
+            f.write(f"**File Path**: `{file_path}`\n\n")
+            
+            f.write("## 📊 Dependency Graph (Mermaid)\n")
+            f.write("```mermaid\ngraph TD\n")
+            f.write(f"    Target[{os.path.basename(file_path)}]:::target\n")
+            f.write("    classDef target fill:#f9f,stroke:#333,stroke-width:2px;\n\n")
+            
+            # Limit graph complexity for readability
+            for p in upstream[:20]:
+                f.write(f"    {os.path.basename(p)} --> Target\n")
+            if len(upstream) > 20:
+                f.write(f"    ...({len(upstream)-20} more) --> Target\n")
+                
+            for p in downstream[:20]:
+                f.write(f"    Target --> {os.path.basename(p)}\n")
+            if len(downstream) > 20:
+                f.write(f"    Target --> ...({len(downstream)-20} more)\n")
+            f.write("```\n\n")
+            
+            f.write("## ⬆️ Used By (Upstream)\n")
+            for p in upstream:
+                f.write(f"- `{p}`\n")
+            if not upstream: f.write("*(None)*\n")
+            
+            f.write("\n## ⬇️ Depends On (Downstream)\n")
+            for p in downstream:
+                f.write(f"- `{p}`\n")
+            if not downstream: f.write("*(None)*\n")
+
+        # Output structured JSON (Summary only)
+        output = {
+            "file": file_path,
+            "layer": layer,
+            "risk_score": risk_score,
+            "impact_count": impact_count,
+            "doc_file": doc_path,
+            "summary": f"Full dependency graph written to {doc_path}. Check Mermaid chart for visual confirmation.",
+            "symbols": symbols[:5] # Just a peek
+        }
+        print(json.dumps(output, indent=2))
 
     def export_graph(self):
         cur = self.db.conn.cursor()

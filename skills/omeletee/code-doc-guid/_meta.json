@@ -3,9 +3,15 @@
   "slug": "code-doc-guid",
   "displayName": "code-doc-guid",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772823108397,
-    "commit": "https://github.com/openclaw/skills/commit/91fc8e1cdd1076405df330da3b1aa6faa54e3ff2"
+    "version": "1.0.2",
+    "publishedAt": 1772866045875,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772823108397,
+      "commit": "https://github.com/openclaw/skills/commit/91fc8e1cdd1076405df330da3b1aa6faa54e3ff2"
+    }
+  ]
 }
