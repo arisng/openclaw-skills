@@ -1,12 +1,13 @@
 ---
 skill_bundle: skill-provenance
 file_role: reference
-version: 7
-version_date: 2026-02-28
-previous_version: 6
+version: 16
+version_date: 2026-03-09
+previous_version: 15
 change_summary: >
-  Added pi0/skillman and arxiv survey paper references to ecosystem
-  and research sections.
+  Clarified that the bundle changelog carries recent history only, with
+  older release history archived in the repo root. Keeps the package
+  lighter without losing full GitHub history.
 ---
 
 # Skill Provenance — README
@@ -24,6 +25,14 @@ couldn't tell whether it was the latest version, or discovered that the
 SKILL.md was updated but the evals weren't, or lost track of what changed
 between sessions.
 
+## Why this matters now
+
+As of March 7, 2026, skills are used across Claude settings, Claude Code,
+the API, the Agent SDK, and multiple non-Claude clients. One skill bundle
+often exists as several copies: a local directory, an uploaded `.skill` or
+`.zip`, and one or more deployed surfaces. skill-provenance exists to keep
+those copies traceable without replacing each platform's native versioning.
+
 
 ## The .skill format
 
@@ -38,7 +47,7 @@ my-skill.skill (ZIP)
 └── my-skill/
     ├── SKILL.md
     ├── MANIFEST.yaml          ← versioning: file inventory
-    ├── CHANGELOG.md           ← versioning: change history
+    ├── CHANGELOG.md           ← versioning: recent in-bundle history
     ├── README.md              ← versioning: human instructions
     ├── assets/
     │   └── template.md
@@ -52,8 +61,13 @@ When you download a `.skill` from Claude settings, the versioning
 artifacts come with it. When you upload one, they're preserved. No
 separate file management needed for the core skill bundle.
 
+If a loader only accepts `.zip` or `.md`, rename the archive from
+`.skill` to `.zip` before uploading. This is the tested path for
+Perplexity Computer. The contents stay identical.
+
 **What doesn't fit in .skill:** Some skill projects include evals,
-generation scripts, rendered outputs (.docx, .pdf), and handoff notes.
+generation scripts, rendered outputs (.docx, .pdf), and optional handoff
+notes.
 The `.skill` format only carries the skill definition and its references.
 These extra files travel separately (uploaded to conversations, stored
 in working directories, or committed to git). The manifest tracks all
@@ -63,10 +77,10 @@ subset.
 
 ## Quick start
 
-### 1. Make the skill available to Claude
+### 1. Make the skill available to your agent
 
-The skill-provenance SKILL.md needs to be accessible in whatever Claude
-surface you're working in. How you do that depends on the surface:
+The skill-provenance SKILL.md needs to be accessible in whatever surface
+you're working in. How you do that depends on the agent and surface:
 
 | Surface | How to load the skill |
 |---|---|
@@ -74,12 +88,25 @@ surface you're working in. How you do that depends on the surface:
 | **Claude Chat** (project) | Add `SKILL.md` to the project knowledge. It will be available in every conversation within that project. |
 | **Claude Cowork** | Place the `skill-provenance/` folder in your Cowork skill directory. Claude will discover it automatically. |
 | **Claude Code** | Place the `skill-provenance/` folder in your project's skill directory (typically alongside other skills). Reference it in your CLAUDE.md if needed. |
-| **Gemini CLI** | Copy or symlink the `skill-provenance/` folder to `~/.gemini/skills/skill-provenance/` for user-wide availability, or `.gemini/skills/skill-provenance/` for a single project. Use `frontmatter_mode: minimal` in the manifest. |
+| **Codex** | Use a strict-platform copy in `~/.codex/skills/skill-provenance/` or a project skill directory. Generate one with `./package.sh strict`, or strip the SKILL.md `metadata` block manually. |
+| **Gemini CLI** | Copy or symlink a strict-platform copy to `~/.gemini/skills/skill-provenance/` for user-wide availability, or `.gemini/skills/skill-provenance/` for a single project. `./package.sh strict` prepares the minimal-frontmatter variant. |
+| **Perplexity Computer** | Upload a `.zip` or folder copy when supported. For strict loaders, start from `./package.sh strict`, then rename `.skill` to `.zip` if needed and keep the trigger-rich description. |
+| **Generic agentskills clients** | Use the directory bundle directly. Some cross-client tooling also recognizes `.agents/skills/skill-provenance/` as a neutral install location. |
 
-The checked-in `skill-provenance/` directory is the canonical source bundle
-and now ships in `frontmatter_mode: minimal`, so the same `SKILL.md` works
-for Claude, Codex, and Gemini CLI. The `.skill` file is just a Claude-friendly
-ZIP wrapper around that directory.
+Treat the bundle as moving through three states:
+
+1. **Canonical source bundle** — the checked-in `skill-provenance/`
+   directory. It ships in `frontmatter_mode: metadata` and is the
+   author-side source of truth.
+2. **Strict-platform install copy** — a derived copy for Codex, Gemini
+   CLI, Perplexity, or any loader that only accepts `name` and
+   `description`. Generate it with `./package.sh strict`.
+3. **Registry package** — a derived consumer package such as `.skill` or
+   a ClawHub upload. Generate the ClawHub variant with `./package.sh
+   clawhub`.
+
+This keeps the canonical bundle stable while install and publish targets
+stay explicit and reproducible.
 
 ### Where to find and manage skills in Claude settings
 
@@ -97,16 +124,17 @@ Open the project → `Project Settings` (gear icon) → `Skills` section
 
 ### 2. Bootstrap an existing skill bundle
 
-Upload all the files that belong to your skill bundle (SKILL.md, evals,
-scripts, outputs, handoff notes — everything) and tell Claude:
+Load or provide all the files that belong to your skill bundle (SKILL.md,
+evals, scripts, outputs, and any existing handoff note) and tell the
+agent:
 
 > "Bootstrap this skill bundle with skill-provenance. Call it [MAJOR.MINOR.PATCH]."
 
 If you don't know the version number, just say "bootstrap this bundle"
-and Claude will ask. Claude inventories the files itself — you don't
+and the agent will ask. The agent inventories the files itself — you don't
 need to list them or count them.
 
-Claude will:
+The agent will:
 - Inventory all files
 - Add internal version headers where safe and record manifest-only versions
   for strict-format files
@@ -118,16 +146,18 @@ Claude will:
 
 Once a bundle is versioned, the protocol is automatic at session boundaries:
 
-**Opening a session:** Upload the bundle files. Tell Claude to verify the
-bundle. Claude reads the manifest, checks for missing or stale files,
-and flags issues before you start working.
+**Opening a session:** Load the bundle files for the current surface.
+Tell the agent to verify the bundle. It reads the manifest, checks for
+missing or stale files, and flags issues before you start working.
 
 **During a session:** Work normally. The versioning system stays out of
 your way until you're ready to save.
 
-**Closing a session:** Tell Claude you're done. Claude updates internal
+**Closing a session:** Tell the agent you're done. It updates internal
 headers where applicable, the manifest, and the changelog for everything
 that changed, flags anything stale, and packages the deliverables.
+If you need a commit message, ask for one; inline output is the default,
+with a file only when you explicitly want one.
 
 
 ## Applying to an existing skill (worked example)
@@ -247,15 +277,15 @@ it again, the versioning artifacts come with it.
 
 ## Porting bundles between surfaces
 
-Each Claude surface handles files differently, and there's no shared
-filesystem between them. The bundle travels through you — typically as
-a `.skill` ZIP or as loose files in a working directory.
+Different surfaces handle files differently. The bundle travels through
+you — typically as a `.skill` ZIP or as loose files in a working
+directory.
 
 ### What to carry
 
 At minimum, carry these files when moving between surfaces:
 - `MANIFEST.yaml` (the source of truth)
-- `CHANGELOG.md` (the history)
+- `CHANGELOG.md` (recent history)
 - Every file listed in the manifest
 
 The manifest tells the receiving session what it should have. If you
@@ -275,11 +305,11 @@ system works identically either way.
 
 #### Chat → Chat (new conversation, same or different project)
 
-1. **Close the old session.** Tell Claude to package the bundle. Claude
+1. **Close the old session.** Tell the agent to package the bundle. It
    updates versioning artifacts and tells you which files to save.
 2. **Download all output files** from the conversation.
 3. **Open a new conversation.** Upload all bundle files.
-4. **Tell Claude to verify the bundle.** Claude reads the manifest and
+4. **Tell the agent to verify the bundle.** It reads the manifest and
    confirms everything arrived intact.
 
 If you're working with installed skills (visible in Settings → Skills),
@@ -300,7 +330,7 @@ download the `.skill` ZIP, unpack, update, repack, and reinstall.
        scripts/
        outputs/
    ```
-3. **In Code**, Claude can verify the bundle by reading the manifest.
+3. **In Code**, the agent can verify the bundle by reading the manifest.
    Hashes can be verified or omitted since git handles integrity.
 4. **Commit the bundle** as your initial versioned state. From here,
    git and the manifest work together: git tracks every change, the
@@ -311,7 +341,7 @@ download the `.skill` ZIP, unpack, update, repack, and reinstall.
 1. **Ensure the bundle is clean** in your repo (no uncommitted changes
    that you care about).
 2. **Copy the bundle files** out of your repo into a local directory.
-3. **Upload to Chat.** Tell Claude to verify the bundle.
+3. **Upload to Chat.** Tell the agent to verify the bundle.
 4. **Or repack as .skill:** ZIP the directory, rename to `.skill`,
    and install via Settings → Skills → Add Skill.
 
@@ -345,9 +375,47 @@ project, so the bundle stays put between sessions.
 5. The manifest hashes can be omitted in git since git handles integrity,
    but version numbers and change summaries remain required.
 
+#### Any surface → ClawHub (publishing)
+
+[ClawHub](https://clawhub.ai) is a skill registry where skills can be
+published and discovered. Publishing to ClawHub is a one-time packaging
+step, not a persistent surface:
+
+1. **Prepare a derived upload folder** with `./package.sh clawhub`.
+   By default this writes to `build/clawhub/skill-provenance/` at the
+   repo root.
+2. **Upload the generated folder** at
+   `https://clawhub.ai/upload?updateSlug=<slug>`. ClawHub accepts a folder
+   drop and recognizes SKILL.md at the root.
+3. **Check the MIT-0 license checkbox.** ClawHub requires MIT-0.
+   Attribution embedded in SKILL.md frontmatter and the Origin section
+   survives this license requirement.
+4. **Set the version number** to match `bundle_version` in your
+   MANIFEST.yaml.
+5. **Only after publish succeeds**, update `deployments.clawhub` in your
+   canonical MANIFEST.yaml.
+
+## Deployment surfaces and drift
+
+The same skill bundle can now exist in multiple places at once: a local
+working directory, a `claude.ai` settings upload, an API workspace skill,
+and one or more local skill directories. Treat those as separate copies
+that can drift independently.
+
+The manifest can optionally include a `deployments:` block to record
+surface-specific state such as API upload versions, local install targets,
+or upload package format. Keep `bundle_version` as the author-side source
+of truth. Platform-native versions such as Anthropic's API timestamps stay
+in their own fields and should not be replaced with semver.
+
+When you deploy or reinstall a skill, update the manifest and changelog if
+you want traceability across those copies. When you edit locally without
+redeploying, the deployment metadata becomes a useful reminder that the
+deployed surface may be stale.
+
 ### What if I forget to carry the manifest?
 
-Claude can reconstruct one from the files you upload, but it will need
+An agent can reconstruct one from the files you upload, but it will need
 to ask you about version numbers and history. This is the bootstrap
 flow — it works, but you lose hash verification and staleness tracking
 for that transition. Better to carry the manifest.
@@ -355,47 +423,12 @@ for that transition. Better to carry the manifest.
 
 ## Gemini Gems workflow
 
-Gemini Gems are Google's equivalent of Claude Skills/Projects in the
-web UI. A Gem consists of a name, a system prompt (the "instructions"
-field), and optional knowledge files uploaded to the Gem's knowledge
-base. Unlike Claude's `.skill` ZIP format, Gems don't accept a single
-bundle — instructions are copy-pasted and files are uploaded individually
-through the Gem Manager.
-
-### Tracking a Gem with skill-provenance
-
-To version-track a Gem alongside its associated files:
-
-1. **Save the Gem's system prompt** as a file in your bundle (e.g.,
-   `GEM_INSTRUCTIONS.md`). Track it in the manifest with
-   `file_role: reference`. This becomes the source of truth for the
-   Gem's instructions — edit it locally, then update the Gem.
-
-2. **Version the bundle normally** using skill-provenance. The Gem
-   instructions file gets internal headers when appropriate, changelog
-   entries, and manifest tracking like any other file.
-
-3. **On session close**, ask the skill to generate a "Gem update
-   summary." This tells you:
-   - Whether `GEM_INSTRUCTIONS.md` changed (and if so, the full text
-     to copy-paste into the Gem Manager's instructions field)
-   - Which files in the bundle need to be re-uploaded to the Gem's
-     knowledge base (any file that changed this session)
-   - The version number and change summary for your records
-
-### Example prompt
-
-> "Package the bundle. I also maintain a Gemini Gem for this skill —
-> tell me what I need to update in the Gem Manager."
-
-### Limitations
-
-- Gem updates are manual (copy-paste instructions, re-upload files).
-  There is no API for programmatic Gem management.
-- Gems have file size and count limits for their knowledge base. Check
-  current limits in the Gem Manager.
-- The Gem's instructions field is plain text, not YAML frontmatter.
-  Copy the body of `GEM_INSTRUCTIONS.md` without the internal header.
+Gemini Gems can be version-tracked by saving the Gem's system prompt as
+a file in your bundle (e.g., `GEM_INSTRUCTIONS.md` with
+`file_role: reference`). On session close, ask the skill for a "Gem
+update summary" to see which files need re-uploading to the Gem's
+knowledge base. Gem updates are manual — there is no API for
+programmatic Gem management. See eval 10 for an example scenario.
 
 
 ## File naming
@@ -476,6 +509,58 @@ means missing files were found.
 
 Zero dependencies beyond `bash`, `shasum` or `sha256sum`, and `awk`.
 
+## Derived package helper
+
+`package.sh` builds the two derived bundle states so you do not have to
+hand-edit frontmatter or MANIFEST entries:
+
+```bash
+# Strict-platform install copy for Codex / Gemini CLI / Perplexity-style loaders
+./package.sh strict
+
+# ClawHub upload folder
+./package.sh clawhub
+
+# Build both under the repo's build directory
+./package.sh all
+```
+
+What it does:
+- `strict`: copies the full tracked bundle, strips the SKILL.md
+  `metadata` block, switches the derived manifest to
+  `frontmatter_mode: minimal`, removes deployment records, and recomputes
+  hashes in the copy.
+- `clawhub`: keeps the metadata block, emits a consumer package with
+  `SKILL.md`, `README.md`, `MANIFEST.yaml`, `evals.json`, and
+  `evals-distribution.json`, removes development-only entries from the
+  derived manifest, and recomputes hashes there.
+
+The canonical bundle remains unchanged. Promote a derived copy back into
+the canonical source only if you mean to change the source of truth.
+
+Default output locations:
+- `./package.sh strict` → `build/strict/skill-provenance/`
+- `./package.sh clawhub` → `build/clawhub/skill-provenance/`
+- `./package.sh all` → `build/{strict,clawhub}/skill-provenance/`
+
+These outputs stay visible at the repo root. Add `build/` to `.gitignore`
+so generated artifacts stay local unless you intentionally decide to
+track them.
+
+## Trust and audit
+
+Use the manifest, hashes, and changelog to answer four questions before you
+trust or reinstall a bundle:
+
+- What files are supposed to be here?
+- Do the current files still match the recorded hashes?
+- What changed since the last known-good version?
+- Which deployed or installed copies might now be behind?
+
+This is useful when a skill comes from another repo, a teammate, a release
+artifact, or a settings download that has been modified locally before
+re-upload.
+
 
 ## Troubleshooting
 
@@ -500,7 +585,7 @@ in project knowledge, or in the skills directory. If you renamed it,
 that's fine — Claude identifies it by frontmatter, not filename.
 
 **Version numbers disagree between a file and the manifest.**
-This is a conflict. Claude will present both claims and ask you to
+This is a conflict. The agent will present both claims and ask you to
 decide. Default: trust the more recent `version_date`.
 
 **I have files that aren't in the manifest.**
@@ -509,10 +594,11 @@ you close the session and Claude updates the manifest. If you're
 uploading files that should be tracked, tell Claude to add them.
 
 **The changelog is getting long.**
-That's fine. It's append-only by design. For very mature skills, you
-can archive older entries into a `CHANGELOG-archive.md` and keep only
-the last 10-15 entries in the active changelog. Note this in the
-changelog itself.
+Trim the in-bundle changelog to recent history and move older entries to
+a repo-level full changelog, such as `../CHANGELOG.md` when the bundle
+lives inside a git repo. Keeping the last 5-15 entries in the active
+bundle changelog is reasonable. Note the archive location inside the
+bundle changelog itself.
 
 **I want to version source material too.**
 Source material (user-provided articles, images, data) is tracked in
@@ -522,25 +608,30 @@ changes, update the hash in the manifest and note it in the changelog.
 
 ## Relationship to the Agent Skills specification
 
-The Agent Skills format (agentskills.io) defines a `metadata` field in
-SKILL.md frontmatter that supports arbitrary key-value pairs, including
-a `version` key. Bundles can use that field for SKILL.md version headers
-when they choose `frontmatter_mode: claude` (see the frontmatter constraint
-above).
+The Agent Skills format (agentskills.io, now adopted by 30+ agent tools)
+defines a `metadata` field in SKILL.md frontmatter that supports arbitrary
+key-value pairs, including a `version` key. This is now a spec-standard
+feature, not a Claude-only extension. Bundles can use that field for
+SKILL.md version headers when they choose `frontmatter_mode: metadata` (see
+the frontmatter constraint in the SKILL.md spec).
 
-However, the official spec's `version` field is a static label — it
-doesn't address cross-session staleness tracking, changelogs, manifests,
-or bundle integrity verification. This skill fills that gap. It is
-complementary to the spec, not a replacement.
+However, the spec's `metadata.version` is a static label — it doesn't
+address cross-session staleness tracking, changelogs, manifests, or bundle
+integrity verification. This skill fills that gap. It is complementary to
+the spec, not a replacement.
 
-This bundle ships in `frontmatter_mode: minimal` for maximum portability,
-so its own SKILL.md version lives in `MANIFEST.yaml`.
+This bundle ships in `frontmatter_mode: metadata` as the canonical source
+bundle, using the spec's `metadata` field to embed author and source
+attribution. Strict-platform copies can be derived when needed; SKILL.md
+version identity still lives in `MANIFEST.yaml`.
 
 The API's skill versioning system (epoch timestamps via `/v1/skills`)
-handles version management for skills deployed through the API. This
-skill handles version management for skills in development, moving
-between sessions, and stored locally — the workflow that precedes
-API deployment.
+handles version management for skills deployed through the API. Custom
+skills uploaded to one surface do not sync to others — a skill uploaded
+to the API is not available in claude.ai or Claude Code, and vice versa.
+This skill handles version management for skills in development, moving
+between sessions and surfaces, and stored locally — the workflow that
+precedes API deployment and persists across it.
 
 
 ## References
@@ -550,6 +641,7 @@ API deployment.
 - [Agent Skills overview](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) — architecture, progressive disclosure, cross-surface availability
 - [Agent Skills best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) — authoring guidance for SKILL.md
 - [Agent Skills specification](https://agentskills.io/specification) — the open standard format definition
+- [Agent Skills integration guide](https://agentskills.io/client-implementation/adding-skills-support) — client install paths, trust checks, collision handling
 - [Skills cookbook](https://platform.claude.com/cookbook/skills-notebooks-01-skills-introduction) — API usage tutorial with Excel, PowerPoint, PDF examples
 - [Using Skills with the API](https://platform.claude.com/docs/en/build-with-claude/skills-guide) — `/v1/skills` endpoints, custom skill uploads
 
@@ -557,12 +649,15 @@ API deployment.
 
 - [Introducing Agent Skills](https://claude.com/blog/skills) — launch announcement (October 2025)
 - [Organization Skills and Directory](https://claude.com/blog/organization-skills-and-directory) — org-wide management, partner directory (December 2025)
+- [Improving skill-creator: Test, measure, and refine Agent Skills](https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills) — evals, benchmarks, and trigger tuning (March 2026)
 
 ### Ecosystem
 
 - [Agent Skills open standard](https://agentskills.io/home) — cross-platform spec, adopted by Claude, GitHub Copilot, Cursor, Codex, and others
-- [Agent Skills GitHub](https://github.com/agentskills/agentskills) — specification source, reference library, validation tools
+- [Agent Skills GitHub](https://github.com/agentskills/agentskills) — specification source, reference library, validation tools (`skills-ref` for frontmatter validation)
 - [Anthropic example skills](https://github.com/anthropics/skills) — official skill examples and templates
+- [GitHub Copilot skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) — GitHub's Agent Skills implementation
+- [OpenAI skills](https://github.com/openai/skills) — official skill catalog for Codex
 - [Connectors directory](https://claude.com/connectors) — partner-built skills and MCP connectors
 - [Gemini CLI creating skills](https://geminicli.com/docs/cli/creating-skills/) — Gemini CLI skill authoring guide
 - [Gemini Gems](https://support.google.com/gemini/answer/16504957) — creating and sharing Gemini Gems

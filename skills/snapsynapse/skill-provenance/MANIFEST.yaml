@@ -1,16 +1,26 @@
 bundle: skill-provenance
-bundle_version: 4.2.1
-bundle_date: 2026-02-28
+bundle_version: 4.7.2
+bundle_date: 2026-03-09
 description: >
   Metaskill for version tracking across Agent Skills sessions, surfaces,
-  and platforms. Manifest, changelog, and portable internal version
-  markers prevent version confusion during iterative skill development.
+  and platforms. Manifest, changelog, deployment notes, and portable
+  internal version markers prevent version confusion during iterative
+  skill development and cross-surface deployment.
 
 compatibility:
   designed_for:
-    platform: Anthropic Claude
-    model: Claude Opus 4.6
-    surface: Chat, Code, Cowork
+    surfaces:
+      - chat
+      - cli
+      - ide
+      - api
+    capabilities:
+      - metadata or minimal SKILL.md frontmatter
+      - local filesystem access
+      - optional git workflow
+      - deployment drift tracking
+      - hash-based audit trail
+      - derived install and publish package generation
   tested_on:
     - platform: Anthropic Claude
       model: Claude Opus 4.6
@@ -35,43 +45,52 @@ compatibility:
       surface: CLI
       status: pass
       date: 2026-02-27
-      notes: Minimal frontmatter mode, co-authored v4 changes
+      notes: Minimal frontmatter mode, local editing workflow
     - platform: Google Gemini CLI
       model: Gemini 2.5 Pro
       surface: CLI
       status: partial
       date: 2026-02-27
       notes: Skill loading and bootstrap work. Gems workflow untested.
+    - platform: Perplexity Computer
+      model: N/A
+      surface: Computer
+      status: partial
+      date: 2026-03-07
+      notes: .zip upload path works. Trigger-oriented description improves discovery.
+  compatible_with:
+    - Claude API (/v1/skills)
+    - Claude Agent SDK
+    - GitHub Copilot / VS Code
+    - Cursor
+    - Any agentskills.io-compatible agent (30+ adopters)
   spec_version: agentskills.io/1.0
-  frontmatter_mode: minimal
+  frontmatter_mode: metadata
+
+dependencies: []
 
 files:
   - path: SKILL.md
     role: skill
-    version: 5
-    hash: sha256:0ae7be7d3696e94f86ae8b9e29a7253c5ab54248242e6bb28d2a2fed9a464634
-    note: Canonical skill definition. Version tracked in MANIFEST.yaml for maximum portability
+    version: 13
+    hash: sha256:2c5d5aa6278b986a945369b6c099a496aeb4de3649bd48ce37a524158df17c61
+    note: Canonical skill definition. Version tracked in MANIFEST.yaml; canonical bundle ships in metadata mode
 
   - path: README.md
     role: reference
-    version: 7
-    hash: sha256:1dc7339b9aa0a5bd1811d9b7aed6e4803276b058819bb0039a3b6e4ec2698437
-    note: Human-facing instructions, worked example, portability guidance, local validation, troubleshooting, references
+    version: 17
+    hash: sha256:4cb266136b18958d9016c238f06c18c61375a31a9f457392317f8a97aa3d9fb0
+    note: Human-facing instructions, worked example, three-state bundle model, local validation, packaging, troubleshooting, references
 
   - path: evals.json
     role: evals
-    version: 5
-    hash: sha256:31e5f3a8f487a221dfd8f013d50daaeabe9fd46a82c42164d8ff766c8bc2525e
-    note: 13 evals covering bootstrap, verify, save, conflict, handoff, cross-platform, frontmatter mode, compatibility block, Gemini CLI, Gemini Gems, git commit, per-file handoff, local validation
+    version: 9
+    hash: sha256:ae0820d58bcb1fd4c2ec511601a7a00ccf52e43f7eb3845cb799ea1967778cae
+    note: 22 evals covering bootstrap, verify, save, conflict, optional handoff, cross-platform, frontmatter mode, compatibility block, Gemini CLI, Gemini Gems, git commit messaging, per-file handoff, local validation, API surface, dependencies, deployment drift, multi-surface installs, trust checks, redeploy events, deployment conflicts, hash mismatches, packaged subsets
 
-  - path: CHANGELOG.md
-    role: reference
-    version: 7
-    hash: sha256:9da23ed9e14b60a76e4b8500e6ab422a889423c6b5a6073a1ec88fd011828ace
-    note: Append-only change history
+  - path: evals-distribution.json
+    role: evals
+    version: 1
+    hash: sha256:b866c0b9fec3d0df6fc61724bd8ef1406a31e312bf25505713c0186a6b3fb148
+    note: 4 supplemental evals covering strict-platform copies, ClawHub package preparation, publish confirmation, and registry installs versus canonical bundles
 
-  - path: validate.sh
-    role: script
-    version: 5
-    hash: sha256:333b6585a72818ae2d0196ef517bebf4e4b909e4a17405b526c6d1ec37be0406
-    note: Zero-dependency bash script for local hash verification and update against MANIFEST.yaml
