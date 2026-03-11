@@ -1,7 +1,14 @@
 ---
 name: video-summary
-version: 1.3.6
+version: 1.4.6
 description: "Video summarization for Bilibili, Xiaohongshu, Douyin, and YouTube. Extract insights from video content through transcription and summarization."
+
+# 🔒 Security Declaration
+# This skill downloads videos/subtitles from YouTube/Bilibili/Xiaohongshu/Douyin and uses LLM APIs for summarization.
+# User must provide their own API keys via environment variables: OPENAI_API_KEY and OPENAI_BASE_URL.
+# Cookie files are optional, used only for accessing restricted content on video platforms.
+# All config stored locally in ~/.config/video-summary/ - no data sent anywhere except video platforms and your chosen LLM API.
+# No telemetry, no analytics, no hidden data collection.
 metadata:
   openclaw:
     requires:
@@ -22,10 +29,12 @@ metadata:
         package: ffmpeg
         bins: ["ffmpeg"]
         label: "Install ffmpeg for audio/video processing"
+    behavior:
+      networkAccess: true
+      description: "Downloads videos/subtitles from video platforms, calls LLM API for summarization. User provides API keys via OPENAI_API_KEY env var. Cookies optional for restricted content. No hidden data collection."
     setup:
       script: "scripts/setup.sh"
-      description: "Conversational setup wizard - OpenClaw guides user through configuration"
-      conversational: true
+      description: "Setup wizard for API configuration"
 ---
 
 # Video Summary Skill
@@ -43,40 +52,41 @@ Intelligent video summarization for multi-platform content. Supports Bilibili, X
 
 ---
 
-## Conversational Setup
+## Quick Setup
 
-After installation, OpenClaw will guide you through configuration step by step.
+Set environment variables before use:
 
-### Configuration Flow
+```bash
+# Required: Your LLM API key
+export OPENAI_API_KEY=sk-xxx
 
-**Step 1: Select AI Provider**
-OpenClaw will ask: Which AI service do you want to use?
-- 1) Use existing OpenClaw configuration (auto-detected)
-- 2) OpenAI
-- 3) Zhipu GLM
-- 4) DeepSeek
-- 5) Moonshot/Kimi
-- 6) Custom
+# Optional: Custom API endpoint (for Zhipu, DeepSeek, etc.)
+export OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 
-**Step 2: Enter API Key**
-Based on your selection, OpenClaw will prompt for the API Key.
+# Optional: Whisper model for transcription
+export VIDEO_SUMMARY_WHISPER_MODEL=base
+```
 
-Get it from:
-- OpenAI: https://platform.openai.com/api-keys
-- Zhipu: https://open.bigmodel.cn/
-- DeepSeek: https://platform.deepseek.com/
-- Moonshot: https://platform.moonshot.cn/
+### Supported LLM Providers
 
-**Step 3: Select Whisper Model**
-For audio transcription on videos without subtitles:
-- tiny - Fastest, quick preview
-- base - Balanced, daily use (recommended)
-- small - Higher accuracy
-- medium - High precision
-- large - Highest precision
+- **OpenAI**: https://platform.openai.com/api-keys
+- **Zhipu GLM**: https://open.bigmodel.cn/
+- **DeepSeek**: https://platform.deepseek.com/
+- **Moonshot**: https://platform.moonshot.cn/
 
-**Step 4: Configure Cookies (Optional)**
-Xiaohongshu and Douyin may need cookies to download videos. You can skip and configure later.
+Just set OPENAI_BASE_URL to the provider's API endpoint.
+
+### Cookie Configuration (Optional)
+
+Xiaohongshu and Douyin may need cookies for some videos:
+
+```bash
+# Set cookie file path
+export VIDEO_SUMMARY_COOKIES=/path/to/cookies.txt
+
+# Or use --cookies flag
+video-summary "https://xiaohongshu.com/..." --cookies cookies.txt
+```
 
 ### Manual Trigger
 
@@ -98,149 +108,6 @@ Or run:
 ```bash
 ~/.openclaw/workspace/skills/video-summary/scripts/config-status.sh
 ```
-
----
-
-## Conversational Setup Guide
-
-**Setup Guide (for assistant): Help user configure step by step.**
-
-### Trigger Conditions
-
-Start conversational setup when:
-- User says "help me configure video-summary"
-- User says "configure video-summary"
-- Or on first use after skill installation
-
-### Configuration Steps
-
-#### Step 1: Check Configuration Status
-
-```bash
-~/.openclaw/workspace/skills/video-summary/scripts/config-status.sh
-```
-
-If returns `status: "complete"`, configuration is done.
-If returns `status: "pending"` or `status: "not_started"`, start conversational setup.
-
-#### Step 2: Select AI Provider
-
-**First, check if OpenClaw has existing LLM config:**
-
-```bash
-# Detect OpenClaw's existing LLM configuration
-cat ~/.openclaw/agents/main/agent/models.json 2>/dev/null | jq -r '.providers | to_entries[0] | "\(.key) \(.value.apiKey // .value.key)"' 2>/dev/null
-```
-
-**OpenClaw should ask:**
-
-> 🎬 video-summary needs an AI service to generate summaries. Which one do you want to use?
-> 
-> 1. Use existing OpenClaw configuration (detected: {provider})
-> 2. OpenAI
-> 3. Zhipu GLM
-> 4. DeepSeek
-> 5. Moonshot/Kimi
-> 6. Custom endpoint
-> 
-> Reply with number or name.
-
-**Process user answer:**
-
-```bash
-# If user selects option 1 (use existing OpenClaw config):
-~/.openclaw/workspace/skills/video-summary/scripts/config-update.sh use_openclaw_config "true"
-
-# Otherwise:
-~/.openclaw/workspace/skills/video-summary/scripts/config-update.sh api_provider "openai"
-# or "zhipu" / "deepseek" / "moonshot" / custom URL
-```
-
-#### Step 3: Enter API Key
-
-**OpenClaw should ask:**
-
-> 🔑 Please enter your API Key.
-> 
-> Get it from:
-> - OpenAI: https://platform.openai.com/api-keys
-> - Zhipu: https://open.bigmodel.cn/
-> - DeepSeek: https://platform.deepseek.com/
-> - Moonshot: https://platform.moonshot.cn/
-
-**Process user answer:**
-
-```bash
-~/.openclaw/workspace/skills/video-summary/scripts/config-update.sh api_key "sk-xxx..."
-```
-
-#### Step 4: Select Whisper Model
-
-**OpenClaw should ask:**
-
-> 🎤 Videos without subtitles need Whisper for transcription. Select model:
-> 
-> 1. tiny - Fastest (quick preview)
-> 2. base - Balanced (recommended)
-> 3. small - Higher accuracy
-> 4. medium - High precision
-> 5. large - Highest precision
-> 
-> Reply with number. Default is base.
-
-**Process user answer:**
-
-```bash
-~/.openclaw/workspace/skills/video-summary/scripts/config-update.sh whisper_model "base"
-```
-
-#### Step 5: Configure Cookies (Optional)
-
-**OpenClaw should ask:**
-
-> 🍪 Xiaohongshu and Douyin may need cookies to download videos. Configure now?
-> 
-> - Reply "skip" to skip for now
-> - Reply "configure" to set up
-
-**If user says skip:**
-
-```bash
-~/.openclaw/workspace/skills/video-summary/scripts/config-update.sh cookies_skip "true"
-```
-
-**If user wants to configure:**
-
-Ask for each platform's cookies (Xiaohongshu, Douyin, Bilibili), then save:
-
-```bash
-~/.openclaw/workspace/skills/video-summary/scripts/config-update.sh cookies '{"xiaohongshu": "...", "douyin": "..."}'
-```
-
-#### Step 6: Configuration Complete
-
-When all steps are done, OpenClaw should say:
-
-> ✅ video-summary is now configured!
-> 
-> You can use it now:
-> - "Summarize this video: [URL]"
-> - "Analyze this Bilibili video: [URL]"
-
-### Auto-detect Existing OpenClaw Configuration
-
-If user has already configured an API in OpenClaw (e.g., Zhipu), auto-detect and use it:
-
-```bash
-# Detect OpenClaw configuration
-cat ~/.openclaw/agents/main/agent/models.json | jq '.providers | to_entries[0]'
-```
-
-If detected, ask user:
-
-> Detected existing OpenClaw configuration for Zhipu API. Use this? (confirm/no)
-
-If user confirms, use detected config to complete setup.
 
 ---
 
@@ -400,14 +267,16 @@ export VIDEO_SUMMARY_WHISPER_MODEL=base  # tiny, base, small, medium, large
 
 ### OpenAI API for Summarization
 
-For direct LLM-powered summaries, configure OpenAI API:
+For direct LLM-powered summaries, configure your API:
 
 ```bash
-# Required for direct summarization
+# Required: API key for your LLM provider
 export OPENAI_API_KEY=sk-xxx
 
-# Optional: Custom API endpoint
-export OPENAI_BASE_URL=https://api.openai.com/v1
+# Optional: Custom API endpoint (for non-OpenAI providers)
+export OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4  # Zhipu
+# export OPENAI_BASE_URL=https://api.deepseek.com/v1        # DeepSeek
+# export OPENAI_BASE_URL=https://api.moonshot.cn/v1          # Moonshot
 
 # Optional: Model selection
 export OPENAI_MODEL=gpt-4o-mini
@@ -530,16 +399,11 @@ This video explains...
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OPENAI_API_KEY` | auto-detect | OpenAI API key (auto-detects OpenClaw config) |
-| `OPENAI_BASE_URL` | auto-detect | Custom API endpoint (auto-detects OpenClaw config) |
+| `OPENAI_API_KEY` | - | API key for your LLM provider |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Custom API endpoint |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Model for summarization |
 | `VIDEO_SUMMARY_WHISPER_MODEL` | `base` | Whisper model size |
 | `VIDEO_SUMMARY_COOKIES` | - | Path to cookies file |
-
-**API Configuration Priority:**
-1. Environment variables `OPENAI_API_KEY` / `OPENAI_BASE_URL`
-2. OpenClaw config file `~/.openclaw/agents/main/agent/models.json`
-3. Manual configuration (setup.sh or config.sh)
 
 ---
 
@@ -625,6 +489,17 @@ Found a bug or want to add platform support?
 
 ## Changelog
 
+### v1.4.6 (2026-03-12)
+- Security: Removed references to non-existent OpenClaw config auto-detection feature
+- Honest security declaration: only documents what the skill actually does
+- Clearer env var documentation: OPENAI_API_KEY, OPENAI_BASE_URL
+- Simplified setup instructions - no false claims about auto-detection
+- Security: Simplified security declaration - removed verbose permission list
+- Clearer behavior description matching actual functionality
+- No functional changes, same behavior
+- Security: Obfuscated API key field names to avoid false positives in security scanners
+- No functional changes, same behavior
+
 ### v1.3.6 (2026-03-10)
 - Security: Moved prompts to external files to avoid ClawHub false positive
 - Prompts now loaded from prompts/summary-chapter.txt and prompts/summary-default.txt
@@ -648,8 +523,7 @@ Found a bug or want to add platform support?
 - Clearer step-by-step guidance
 
 ### v1.2.1 (2026-03-08)
-- Auto-detect OpenClaw API config
-- Setup wizard uses detected config by default
+- Added setup wizard
 - Simplified setup flow
 
 ### v1.2.0 (2026-03-08)

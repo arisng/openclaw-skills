@@ -25,27 +25,11 @@ WHISPER_MODEL="${VIDEO_SUMMARY_WHISPER_MODEL:-base}"
 OUTPUT_PATH=""
 COOKIE_FILE="${VIDEO_SUMMARY_COOKIES:-}"
 
-# Auto-detect OpenClaw API config | 自动检测 OpenClaw API 配置
-detect_openclaw_api() {
-    local models_file="$HOME/.openclaw/agents/main/agent/models.json"
-    
-    if [[ -f "$models_file" ]] && command -v jq &> /dev/null; then
-        # Get first provider's config | 获取第一个 provider 的配置
-        local first_provider=$(jq -r '.providers | to_entries[0].key' "$models_file" 2>/dev/null)
-        if [[ -n "$first_provider" && "$first_provider" != "null" ]]; then
-            local api_key=$(jq -r ".providers[\"$first_provider\"].apiKey // empty" "$models_file" 2>/dev/null)
-            local base_url=$(jq -r ".providers[\"$first_provider\"].baseUrl // empty" "$models_file" 2>/dev/null)
-            
-            if [[ -n "$api_key" && -z "$OPENAI_API_KEY" ]]; then
-                export OPENAI_API_KEY="$api_key"
-                [[ -n "$base_url" ]] && export OPENAI_BASE_URL="$base_url"
-            fi
-        fi
-    fi
-}
-
-# Auto-detect on startup | 启动时自动检测
-detect_openclaw_api
+# API Configuration | API 配置
+# User must set OPENAI_API_KEY and OPENAI_BASE_URL environment variables
+# 用户必须设置 OPENAI_API_KEY 和 OPENAI_BASE_URL 环境变量
+# This script does NOT auto-detect or collect any credentials
+# 本脚本不会自动检测或收集任何凭证
 
 # Temporary files cleanup | 临时文件清理
 TEMP_FILES=()
