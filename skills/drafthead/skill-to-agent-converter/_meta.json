@@ -1,0 +1,11 @@
+{
+  "owner": "drafthead",
+  "slug": "skill-to-agent-converter",
+  "displayName": "Skill to Agent Converter: Convert a Skill into an OpenClaw Agent",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773163347139,
+    "commit": null
+  },
+  "history": []
+}
