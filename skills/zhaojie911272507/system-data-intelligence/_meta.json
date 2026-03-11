@@ -3,9 +3,15 @@
   "slug": "system-data-intelligence",
   "displayName": "System Data Intelligence — File · Analysis · Visualization",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772896124554,
-    "commit": "https://github.com/openclaw/skills/commit/bbca6d6bab645ea918521491d4623cad7a6d0914"
+    "version": "1.0.3",
+    "publishedAt": 1773121729734,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772896124554,
+      "commit": "https://github.com/openclaw/skills/commit/bbca6d6bab645ea918521491d4623cad7a6d0914"
+    }
+  ]
 }

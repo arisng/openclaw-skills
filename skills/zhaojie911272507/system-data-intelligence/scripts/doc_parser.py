@@ -109,14 +109,52 @@ LOADERS = {
 }
 
 
-def detect_and_load(filepath: str) -> dict:
+def fallback_chain(strategies: list, filepath: str, **kwargs) -> dict:
+    """Try each (name, loader) in order; return on first success."""
+    last_exc = None
+    for name, loader in strategies:
+        try:
+            result = loader(filepath)
+            if isinstance(result, dict):
+                result['_strategy'] = name
+            return result
+        except Exception as exc:
+            last_exc = exc
+    raise RuntimeError(f"All strategies failed for {filepath}") from last_exc
+
+
+def with_retry(max_retries: int = 1, delay: float = 1.0):
+    """Decorator: retry on failure."""
+    import time
+    def decorator(fn):
+        def wrapper(*args, **kwargs):
+            last_exc = None
+            for attempt in range(max_retries + 2):
+                try:
+                    return fn(*args, **kwargs)
+                except Exception as exc:
+                    last_exc = exc
+                    if attempt <= max_retries:
+                        time.sleep(delay * (2 ** attempt))
+            raise last_exc
+        return wrapper
+    return decorator
+
+
+def detect_and_load(filepath: str, *, chunk_size: int = 10000, timeout: int = 120) -> dict:
     """Auto-detect file format and load with the best strategy."""
-    suffix = Path(filepath).suffix.lower()
+    fpath = Path(filepath)
+    if not fpath.exists():
+        raise FileNotFoundError(f"File not found: {filepath}")
+    suffix = fpath.suffix.lower()
     loader = LOADERS.get(suffix)
     if not loader:
         raise ValueError(f"Unsupported format: {suffix}. Supported: {list(LOADERS.keys())}")
     logger.info(f"Loading {suffix} with {loader.__name__}")
-    return loader(filepath)
+    result = loader(filepath)
+    result['_file'] = fpath.name
+    result['_os'] = __import__('platform').system()
+    return result
 
 
 def main():
