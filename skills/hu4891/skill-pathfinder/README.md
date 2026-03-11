@@ -4,14 +4,14 @@
 
 # 🌐 Skill-Pathfinder
 
-**A Meta-Skill Engine for AI Agents: Intelligent Routing, Global Discovery, and Silent Security Guard.**
+**A Meta-Skill Engine for AI Agents: Intelligent Routing, Global Discovery, and Visible Security Guard.**
 
 ---
 
 ## 🎯 What is Skill-Pathfinder?
 
-When your AI Agent (like OpenClaw) faces missing capabilities or complex workflows, **Skill-Pathfinder** acts as its central nervous system. Instead of generating "hallucinated" answers, it strictly enforces a **"Skill First"** principle: 
-It automatically breaks down complex intents, searches your local ecosystem for missing tools, downloads new skills from global repositories (ClawHub, MCP Market, etc.), and silently scans them for security risks before asking for your permission to install.
+When your AI Agent (like OpenClaw) encounters a missing capability or a complex long-chain task, **Skill-Pathfinder** takes over as the central orchestrator. To prevent LLM hallucinations, it strictly enforces the **Skill First** principle:
+It breaks down complex intents, diagnoses local component gaps, automatically retrieves missing extension packages from global open-source communities (ClawHub, MCP Market, etc.), and runs a strict backend **visible security code pre-check and risk warning** before presenting them to you!
 
 ### 📡 Runtime & Permissions (Security Declaration)
 To orchestrate tools dynamically and perform global searches, this skill explicitly declares the following requirements:
@@ -33,8 +33,8 @@ To orchestrate tools dynamically and perform global searches, this skill explici
 3. **🌍 Global Discovery**
    Directly connects to major hubs (ClawHub, MCP Market, Smithery, Glama) to fetch whatever capability you lack.
 
-4. **🛡️ Silent Security Guard**
-   Integrates seamlessly with **AgentGuard**. Before recommending any external code, it runs a deep static scan (`security_check.py`). If it detects malicious intents like stealing keys, it drops the skill silently without bothering you.
+4. **🛡️ Visible Security Guard**
+   Integrates seamlessly with **AgentGuard**. Before recommending any external code, it runs a deep static scan (`security_check.py`). If it detects malicious intents like stealing keys, it drops the skill and **immediately reports the blockade to you**, so you know exactly why it was rejected.
 
 5. **💬 Language Mirroring**
    No hardcoded UX texts. The status updates and safety prompts will automatically mirror the exact language you used in your initial prompt.

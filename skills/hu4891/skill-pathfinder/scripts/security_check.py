@@ -9,9 +9,8 @@ def scan_skill(target_url):
     由于我们在底层实际调用 npx，所以要求环境里装有 Node.js。
     返回 True 代表安全，False 代表查出红牌。
     """
-    print(f"[*] 正在启动 AgentGuard 静默扫描目标: {target_url} ...")
-    
-    # [SECURITY FIX]: 移除 shell=True，改用安全的列表传参，防止针对 target_url 的命令注入攻击
+    print(f"[*] 正在启动 AgentGuard 明文合规扫描目标: {target_url} ...")
+    print(f"[*] 约束条件: 严禁自动下载、严禁静默授权") # [SECURITY FIX]: 移除 shell=True，改用安全的列表传参，防止针对 target_url 的命令注入攻击
     command = ["npx", "agentguard", "scan", target_url]
     
     try:
@@ -39,7 +38,7 @@ def scan_skill(target_url):
                 break
                 
         if is_unsafe:
-            print("[!] 扫描结果：检测到严重安全风险 (UNSAFE)。建议静默丢弃。")
+            print("[!] 扫描结果：检测到严重安全风险 (UNSAFE)。该组件已被阻断拦截。")
             sys.exit(1) # 抛出非0错误码，供大模型系统识别这是失败的分支
         else:
             print("[+] 扫描结果：未发现高危动作 (SAFE)。可以通过。")
