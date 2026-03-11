@@ -1,0 +1,11 @@
+{
+  "owner": "cinience",
+  "slug": "alicloud-ai-audio-asr",
+  "displayName": "Alicloud Ai Audio Asr",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773221807633,
+    "commit": null
+  },
+  "history": []
+}
