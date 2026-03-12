@@ -3,11 +3,16 @@
   "slug": "alicloud-security-id-verification-cloudauth",
   "displayName": "Alicloud Security Id Verification Cloudauth",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1772109499022,
-    "commit": "https://github.com/openclaw/skills/commit/c8f3726033673a14e94cc20f386752bc56ebfa7a"
+    "version": "1.0.4",
+    "publishedAt": 1773222049829,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1772109499022,
+      "commit": "https://github.com/openclaw/skills/commit/c8f3726033673a14e94cc20f386752bc56ebfa7a"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1770973238515,
