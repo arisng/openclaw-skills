@@ -1,25 +1,43 @@
 ---
-id: idfm-journey-skill
-name: IDFM Journey
-description: Query Île-de-France Mobilités (IDFM) PRIM/Navitia for Paris + suburbs public transport (Île-de-France) — place resolution, journey planning, and disruptions/incident checks.
-env: ['IDFM_PRIM_API_KEY']
-license: MIT
-metadata:
-  author: anthonymq
-  category: "Transport"
-  tags: ["idfm", "navitia", "paris", "transport"]
+name: idfm-journey
+description: Query Île-de-France Mobilités (IDFM) PRIM/Navitia for Paris + suburbs public transport (Île-de-France) — place resolution, journey planning, and disruptions/incident checks. Use when asked to find routes in Île-de-France (e.g., "itinéraire de X à Y"), resolve station/stop ids, or check RER/metro line disruptions, and you have an IDFM PRIM API key.
+version: 0.1.6
+author: anthonymq
+triggers:
+  - "Itinéraire de {origine} à {destination}"
+  - "Route from {origin} to {destination} in Paris / Île-de-France"
+  - "Check RER/metro disruptions" 
+  - "Incidents on line {line}"
 ---
 
 # IDFM Journey (PRIM/Navitia)
 
 Use the bundled script to call PRIM/Navitia endpoints without extra dependencies.
 
-## Prereqs / security
+## Metadata
 
-- **Required secret:** `IDFM_PRIM_API_KEY` (treat as a secret; don’t commit it).
-- **Scope it:** set it only in the shell/session that runs the command.
-- **Do not override `--base-url`** unless you fully trust the endpoint.
-  The script sends `apikey: <IDFM_PRIM_API_KEY>` to whatever base URL you provide, so a malicious URL would exfiltrate your key.
+- **Author:** anthonymq
+- **Version:** 0.1.6
+
+## Trigger phrases (examples)
+
+- "Itinéraire de {origine} à {destination}"
+- "Route from {origin} to {destination} in Paris / Île-de-France"
+- "Check RER/metro disruptions" / "incidents on line {line}"
+
+## Prereqs
+
+- Set `IDFM_PRIM_API_KEY` in the environment before running.
+
+### Generating an API Key
+
+To obtain an IDFM PRIM API key:
+1. Visit [https://prim.iledefrance-mobilites.fr/](https://prim.iledefrance-mobilites.fr/)
+2. Create an account or log in
+3. Navigate to "Espace développeur" or the developer portal
+4. Subscribe to the "Navitia" API
+5. Your API key will be generated and displayed in your dashboard
+6. Export it in your environment: `export IDFM_PRIM_API_KEY="your-key-here"`
 
 ## Quick commands
 
