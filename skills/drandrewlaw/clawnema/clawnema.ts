@@ -9,17 +9,21 @@
  * - Summarize the experience for their owner
  *
  * Primary command: `go-to-movies` — fully autonomous end-to-end flow
+ *
+ * Payment is handled via the agent's allowed-tools (npx awal@latest send).
+ * The skill never executes shell commands directly — all CLI operations
+ * are delegated to the agent's tool system for transparency and safety.
  */
 
-import dotenv from 'dotenv';
-import { execSync } from 'child_process';
+// Config is read once from the environment at init time
+let BACKEND_URL = '';
+let AGENT_ID = '';
+let OWNER_NOTIFY = '';
+let DEV_MODE = false;
 
-dotenv.config();
-
-const BACKEND_URL = process.env.CLAWNEMA_BACKEND_URL || 'http://localhost:3000';
-const WALLET_ADDRESS = process.env.CLAWNEMA_WALLET_ADDRESS || '';
-const AGENT_ID = process.env.AGENT_ID || 'openclaw-agent';
-const OWNER_NOTIFY = process.env.OWNER_NOTIFY || '';
+// Known legitimate Clawnema wallet address for payment verification.
+// If the backend returns a different address, the agent will warn the owner.
+const KNOWN_WALLET = '0xf937d5020decA2578427427B6ae1016ddf7b492c';
 
 // Session state for the current agent
 interface ClawnemaState {
@@ -106,68 +110,11 @@ async function getTheaters(): Promise<Theater[]> {
 }
 
 /**
- * Send USDC payment via awal CLI
- * In DEV_MODE, generates a dev_ hash that the backend auto-accepts
- * Returns the transaction hash on success, or null on failure
- */
-function sendPayment(amount: number, recipient: string): { txHash: string | null; error: string | null } {
-  // Dev mode: skip real payment
-  const devMode = process.env.DEV_MODE === 'true';
-  if (devMode) {
-    const devHash = `dev_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    console.log(`[DEV MODE] Simulated payment of ${amount} USDC → ${devHash}`);
-    return { txHash: devHash, error: null };
-  }
-
-  try {
-    // First check if awal is authenticated
-    const statusOutput = execSync('npx awal@latest status --json 2>/dev/null || npx awal@latest status 2>&1', {
-      encoding: 'utf-8',
-      timeout: 30000
-    });
-
-    if (statusOutput.includes('Not authenticated') || statusOutput.includes('not authenticated')) {
-      return {
-        txHash: null,
-        error: 'Wallet not authenticated. Please run: npx awal auth login <your-email>'
-      };
-    }
-
-    // Send USDC via awal
-    const sendOutput = execSync(
-      `npx awal@latest send ${amount} ${recipient} --json`,
-      { encoding: 'utf-8', timeout: 60000 }
-    );
-
-    // Parse the JSON output to get the tx hash
-    const jsonMatch = sendOutput.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
-      const txHash = result.transactionHash || result.tx_hash || result.hash;
-      if (txHash) {
-        return { txHash, error: null };
-      }
-    }
-
-    // Fallback: look for a tx hash pattern in the output
-    const hashMatch = sendOutput.match(/0x[a-fA-F0-9]{64}/);
-    if (hashMatch) {
-      return { txHash: hashMatch[0], error: null };
-    }
-
-    return { txHash: null, error: `Payment sent but could not parse tx hash from output: ${sendOutput.slice(0, 200)}` };
-
-  } catch (error: any) {
-    const msg = error.stderr || error.stdout || error.message || 'Unknown error';
-    if (msg.includes('Insufficient balance') || msg.includes('insufficient')) {
-      return { txHash: null, error: 'Insufficient USDC balance. Fund your wallet with: npx awal show' };
-    }
-    return { txHash: null, error: `Payment failed: ${msg.slice(0, 200)}` };
-  }
-}
-
-/**
- * Buy a ticket — auto-pays via awal if no tx hash provided
+ * Buy a ticket — requires a tx_hash from a prior awal payment.
+ * In DEV_MODE, auto-generates a dev hash.
+ *
+ * If no tx_hash is provided, returns payment instructions for the agent
+ * to execute via its allowed-tools (npx awal@latest send).
  */
 async function buyTicket(theaterId: string, txHash?: string): Promise<string> {
   try {
@@ -178,22 +125,36 @@ async function buyTicket(theaterId: string, txHash?: string): Promise<string> {
       return `❌ Theater not found: ${theaterId}. Use \`check-movies\` to see available theaters.`;
     }
 
-    // If no tx hash, auto-pay via awal
+    // If no tx hash and DEV_MODE, auto-generate one
+    if (!txHash && DEV_MODE) {
+      txHash = `dev_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    }
+
+    // If still no tx hash, tell the agent to pay first
     if (!txHash) {
-      const walletAddr = theater.wallet_address || WALLET_ADDRESS;
+      const walletAddr = theater.wallet_address || '';
       if (!walletAddr) {
-        return `❌ No wallet address configured. Set CLAWNEMA_WALLET_ADDRESS in .env`;
+        return `❌ No wallet address available for this theater.`;
       }
 
-      console.log(`💳 Sending ${theater.ticket_price_usdc} USDC to ${walletAddr}...`);
-      const payment = sendPayment(theater.ticket_price_usdc, walletAddr);
+      // Verify the wallet address matches the known legitimate address
+      const addrLower = walletAddr.toLowerCase();
+      const knownLower = KNOWN_WALLET.toLowerCase();
+      const trusted = addrLower === knownLower;
 
-      if (payment.error) {
-        return `❌ ${payment.error}`;
+      let warning = '';
+      if (!trusted) {
+        warning = `\n\n⚠️ **WARNING:** The payment address (\`${walletAddr}\`) does not match the known Clawnema wallet (\`${KNOWN_WALLET}\`). ` +
+          `**Do NOT send payment** until your owner verifies this address is legitimate.\n`;
       }
 
-      txHash = payment.txHash!;
-      console.log(`✅ Payment sent! TX: ${txHash}`);
+      return `💳 **Payment required** for "${theater.title}" (${theater.ticket_price_usdc} USDC)\n\n` +
+        `**Recipient:** \`${walletAddr}\`${trusted ? ' (verified Clawnema wallet)' : ''}\n` +
+        warning +
+        `\nConfirm with your owner before paying. Then run:\n` +
+        `\`\`\`\nnpx awal@latest send ${theater.ticket_price_usdc} ${walletAddr} --json\n\`\`\`\n\n` +
+        `Then call: \`buy-ticket ${theaterId} <TX_HASH>\`\n\n` +
+        `The TX hash will be in the JSON output (look for \`transactionHash\` or \`hash\` field).`;
     }
 
     // Submit ticket purchase to backend
@@ -510,6 +471,12 @@ function summarize(): string {
     report += `A quick but enjoyable viewing.`;
   }
 
+  // If OWNER_NOTIFY is set, remind the agent to send the digest
+  if (OWNER_NOTIFY) {
+    report += `\n\n📨 To send this digest to your owner, run:\n` +
+      `\`openclaw message send ${OWNER_NOTIFY} "<digest text>"\``;
+  }
+
   return report;
 }
 
@@ -570,7 +537,7 @@ function sessionInfo(): string {
  * Fully autonomous movie experience:
  * 1. Check what's playing
  * 2. Pick the cheapest theater
- * 3. Auto-pay via awal
+ * 3. Guide agent to pay via awal (or auto-accept in DEV_MODE)
  * 4. Watch N scenes
  * 5. Comment on what you see
  * 6. Summarize for the owner
@@ -605,12 +572,18 @@ async function goToMovies(preferredTheater?: string, sceneCount: number = 5): Pr
 
   output += `🎟️ Selected: **${theater.title}** (${theater.ticket_price_usdc} USDC)\n\n`;
 
-  // Step 3: Auto-pay and buy ticket
+  // Step 3: Buy ticket (in DEV_MODE auto-generates hash, otherwise needs agent to pay)
   output += '💳 Purchasing ticket...\n';
   const buyResult = await buyTicket(theater.id);
 
   if (buyResult.includes('❌')) {
     return output + buyResult;
+  }
+
+  // If payment is needed (non-dev mode), return instructions for the agent
+  if (buyResult.includes('Payment required')) {
+    return output + buyResult + '\n\nAfter paying, run: `go-to-movies ' +
+      (preferredTheater || theater.id) + ' ' + sceneCount + '` again.';
   }
 
   output += buyResult + '\n\n';
@@ -624,11 +597,7 @@ async function goToMovies(preferredTheater?: string, sceneCount: number = 5): Pr
   const summary = summarize();
   output += '\n' + summary;
 
-  // Step 7: Send digest to owner
-  const digestResult = sendDigest(summary);
-  output += '\n\n' + digestResult;
-
-  // Step 8: Leave theater (expires ticket so seat frees up)
+  // Step 7: Leave theater (expires ticket so seat frees up)
   leaveTheater();
 
   return output;
@@ -642,44 +611,22 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * Send viewing digest to the owner via openclaw message send
- * Requires OWNER_NOTIFY to be set in .env
- *
- * OWNER_NOTIFY supports any channel the owner has configured in OpenClaw:
- *   telegram:<chat_id>    — Telegram (e.g. telegram:990629908)
- *   discord:<channel_id>  — Discord
- *   whatsapp:<phone>      — WhatsApp
- *   email:<address>       — Email
- *   slack:<channel>       — Slack
- *   Or any custom destination openclaw message send supports
- */
-function sendDigest(digest: string): string {
-  if (!OWNER_NOTIFY) {
-    return '📝 Digest ready (set OWNER_NOTIFY in .env to receive digests — e.g. telegram:123456, discord:channel-id)';
-  }
-
-  try {
-    const escapedDigest = digest.replace(/"/g, '\\"').replace(/`/g, '\\`');
-    execSync(
-      `openclaw message send ${OWNER_NOTIFY} "${escapedDigest}"`,
-      { encoding: 'utf-8', timeout: 15000 }
-    );
-    return `📨 Digest sent to ${OWNER_NOTIFY}`;
-  } catch (error: any) {
-    console.error('Failed to send digest:', error.message);
-    return `⚠️ Could not send digest to ${OWNER_NOTIFY}: ${error.message?.slice(0, 100)}`;
-  }
-}
-
 // ──────────────────────────────────────────────
 // OpenClaw Skill Registration
 // ──────────────────────────────────────────────
 
 /**
- * Initialize the skill with OpenClaw
+ * Initialize the skill with OpenClaw.
+ * Reads configuration from skills.env (if available) or skill config.
  */
 export function init(skills: any): void {
+  // Read config: skills.env is the primary source (set by OpenClaw runtime from .env files)
+  const cfg = skills.env || skills.config || {};
+  BACKEND_URL = cfg.CLAWNEMA_BACKEND_URL || 'https://clawnema-backend-production.up.railway.app';
+  AGENT_ID = cfg.AGENT_ID || 'openclaw-agent';
+  OWNER_NOTIFY = cfg.OWNER_NOTIFY || '';
+  DEV_MODE = cfg.DEV_MODE === 'true';
+
   // Primary command — the magic autonomous flow
   skills.register('go-to-movies', async (args?: string[]) => {
     const theaterId = args?.[0];
@@ -694,7 +641,7 @@ export function init(skills: any): void {
 
   skills.register('buy-ticket', async (args?: string[]) => {
     if (!args || args.length === 0) {
-      return 'Usage: buy-ticket <theater_id> [tx_hash]\n\nUse `check-movies` to see available theaters.\nOmit tx_hash to auto-pay via awal.';
+      return 'Usage: buy-ticket <theater_id> [tx_hash]\n\nUse `check-movies` to see available theaters.\nOmit tx_hash to see payment instructions.';
     }
     return await buyTicket(args[0], args[1]);
   });
