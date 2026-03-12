@@ -1,6 +1,7 @@
 ---
 name: alicloud-platform-openapi-product-api-discovery
 description: Discover and reconcile Alibaba Cloud product catalogs from Ticket System, Support & Service, and BSS OpenAPI; fetch OpenAPI product/version/API metadata; and summarize API coverage to plan new skills. Use when you need a complete product list, product-to-API mapping, or coverage/gap reports for skill generation.
+version: 1.0.0
 ---
 
 # Alibaba Cloud Product + API Discovery
@@ -74,6 +75,29 @@ python scripts/analyze_products_vs_skills.py
 ## Output discipline
 
 All generated files must go under `output/`. Do not place temporary files elsewhere.
+
+## Validation
+
+```bash
+mkdir -p output/alicloud-platform-openapi-product-api-discovery
+for f in skills/platform/openapi/alicloud-platform-openapi-product-api-discovery/scripts/*.py; do
+  python3 -m py_compile "$f"
+done
+echo "py_compile_ok" > output/alicloud-platform-openapi-product-api-discovery/validate.txt
+```
+
+Pass criteria: command exits 0 and `output/alicloud-platform-openapi-product-api-discovery/validate.txt` is generated.
+
+## Output And Evidence
+
+- Save artifacts, command outputs, and API response summaries under `output/alicloud-platform-openapi-product-api-discovery/`.
+- Include key parameters (region/resource id/time range) in evidence files for reproducibility.
+
+## Prerequisites
+
+- Configure least-privilege Alibaba Cloud credentials before execution.
+- Prefer environment variables: `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, optional `ALICLOUD_REGION_ID`.
+- If region is unclear, ask the user before running mutating operations.
 
 ## References
 
