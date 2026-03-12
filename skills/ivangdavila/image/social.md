@@ -1,103 +1,50 @@
-# Social Media Image Dimensions
+# Social Media Image Exports
 
-## Instagram
+Platform UIs change often. Use these as high-confidence working defaults, then recheck the final platform uploader when a campaign is high stakes.
 
-| Type | Dimensions | Aspect Ratio | Max Size |
-|------|------------|--------------|----------|
-| Feed (Square) | 1080 × 1080 | 1:1 | 30 MB |
-| Feed (Portrait) | 1080 × 1350 | 4:5 | 30 MB |
-| Feed (Landscape) | 1080 × 566 | 1.91:1 | 30 MB |
-| Stories/Reels | 1080 × 1920 | 9:16 | 30 MB |
-| Profile Picture | 320 × 320 | 1:1 | 10 MB |
+## Core Sizes
 
----
+| Platform | Format | Dimensions | Notes |
+|----------|--------|------------|-------|
+| Instagram feed portrait | 4:5 | 1080 × 1350 | Strong default for feed reach |
+| Instagram story / reel cover | 9:16 | 1080 × 1920 | Keep key content away from edges |
+| X card image | 1.91:1 | 1200 × 628 | Safer for link previews |
+| LinkedIn feed square | 1:1 | 1200 × 1200 | Clean default for mixed content |
+| Facebook feed image | 1.91:1 | 1200 × 630 | Common share preview shape |
+| YouTube thumbnail | 16:9 | 1280 × 720 | Text must stay legible at small size |
+| Pinterest pin | 2:3 | 1000 × 1500 | Standard pin ratio |
+| OG / social preview card | 1.91:1 | 1200 × 630 | Safe default for link previews and embeds |
 
-## TikTok
+## Safe-Zone Rules
 
-| Type | Dimensions | Aspect Ratio | Max Size |
-|------|------------|--------------|----------|
-| Video/Image Post | 1080 × 1920 | 9:16 | 287 MB |
-| Profile Picture | 200 × 200 min | 1:1 | 5 MB |
-| Thumbnail | 1080 × 1920 | 9:16 | 10 MB |
+- Keep essential text, faces, logos, and product edges away from the outer margins.
+- Story and reel formats need wider top/bottom safety because UI chrome overlays them.
+- Banners and headers crop unpredictably across desktop and mobile.
+- A technically correct size can still fail if the real focal point sits too close to an edge.
 
----
+## Social Export Rules
 
-## Twitter/X
+- Use RGB and sRGB.
+- Avoid tiny text that only works in the full-resolution editor view.
+- Compress enough to upload fast, but not so hard that gradients, skin, or text show visible damage.
+- If text matters, validate legibility on a small preview, not only at full size.
+- Platform uploaders often recompress again, so leave enough quality headroom for the second pass.
+- Thumbnail crops and in-feed previews may differ from the full asset view, so verify the preview state the audience actually sees.
+- If the same campaign must ship to multiple platforms, export per platform rather than trusting one master crop to survive everywhere.
 
-| Type | Dimensions | Aspect Ratio | Max Size |
-|------|------------|--------------|----------|
-| In-Feed Image | 1600 × 900 | 16:9 | 5 MB |
-| Profile Picture | 400 × 400 | 1:1 | 2 MB |
-| Header/Banner | 1500 × 500 | 3:1 | 5 MB |
-| Card Image | 1200 × 628 | 1.91:1 | 5 MB |
+## Content Guidance
 
----
+- Put the main subject, offer, or headline in the central safe area.
+- Do not rely on corner badges, tiny logos, or edge-aligned text surviving previews.
+- Faces, products, and callouts need more breathing room in stories, reels, and banners than in square feed posts.
+- The real first impression is often the tiny preview tile, not the full-screen asset; optimize for that moment too.
 
-## LinkedIn
+## Quick Checks
 
-| Type | Dimensions | Aspect Ratio | Max Size |
-|------|------------|--------------|----------|
-| Feed Post (Square) | 1200 × 1200 | 1:1 | 8 MB |
-| Feed Post (Portrait) | 1080 × 1350 | 4:5 | 8 MB |
-| Profile Picture | 400 × 400 | 1:1 | 8 MB |
-| Personal Banner | 1584 × 396 | 4:1 | 8 MB |
-| Company Banner | 1128 × 191 | 5.91:1 | 8 MB |
-| Company Logo | 300 × 300 | 1:1 | 8 MB |
-
----
-
-## Facebook
-
-| Type | Dimensions | Aspect Ratio | Max Size |
-|------|------------|--------------|----------|
-| Feed Post | 1200 × 630 | 1.91:1 | 30 MB |
-| Stories | 1080 × 1920 | 9:16 | 30 MB |
-| Profile Picture | 170 × 170 | 1:1 | 25 MB |
-| Cover Photo | 820 × 312 | 2.63:1 | 25 MB |
-| Event Cover | 1920 × 1005 | 1.91:1 | 10 MB |
-
----
-
-## YouTube
-
-| Type | Dimensions | Aspect Ratio | Max Size |
-|------|------------|--------------|----------|
-| Video Thumbnail | 1280 × 720 | 16:9 | 2 MB |
-| Channel Profile | 800 × 800 | 1:1 | 4 MB |
-| Channel Banner | 2560 × 1440 | 16:9 | 6 MB |
-| Banner Safe Area | 1546 × 423 | - | - |
-
----
-
-## Pinterest
-
-| Type | Dimensions | Aspect Ratio | Max Size |
-|------|------------|--------------|----------|
-| Standard Pin | 1000 × 1500 | 2:3 | 20 MB |
-| Long Pin | 1000 × 2100 | 1:2.1 | 20 MB |
-| Square Pin | 1000 × 1000 | 1:1 | 20 MB |
-| Profile Picture | 165 × 165 | 1:1 | 10 MB |
-
----
-
-## Quick Reference
-
-| Platform | Min Width | Safe Zone |
-|----------|-----------|-----------|
-| Instagram | 1080px | Stories: 250px from edges |
-| TikTok | 1080px | 150px margins all sides |
-| Twitter/X | 1200px | Center key content |
-| LinkedIn | 1200px | Avoid text on banner edges |
-| Facebook | 1200px | Mobile: center 640×360 |
-| YouTube | 1280px | Banner safe: center 1546×423 |
-| Pinterest | 1000px | Top 50px may crop |
-
----
-
-## Format Notes
-
-- **RGB color mode** for all web
-- **72 DPI minimum**
-- **PNG** for graphics/text
-- **JPEG** for photos
-- Compress without visible quality loss
+```
+□ Correct aspect ratio
+□ Key content centered within a safe area
+□ Text readable on mobile
+□ No edge-cropped logos or faces
+□ Exported in RGB/sRGB
+```

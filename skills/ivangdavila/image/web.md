@@ -1,11 +1,11 @@
 # Web Image Optimization
 
-## Responsive Images — Breakpoints
+## Responsive Images
 
-Standard srcset widths: **320w, 640w, 768w, 1024w, 1366w, 1600w, 1920w**
+Standard `srcset` widths: **320w, 640w, 768w, 1024w, 1366w, 1600w, 1920w**
 
 ```html
-<img 
+<img
   srcset="image-320.webp 320w,
           image-640.webp 640w,
           image-1024.webp 1024w,
@@ -16,123 +16,91 @@ Standard srcset widths: **320w, 640w, 768w, 1024w, 1366w, 1600w, 1920w**
 >
 ```
 
-**Rule:** Don't generate all sizes. Match your CSS breakpoints. 4-5 sizes is usually enough.
+- Do not generate every possible size; match real CSS breakpoints.
+- Four or five sizes is usually enough for one asset.
+- Width descriptors are safer than DPR-only guesswork when layouts vary.
+- If art direction changes by viewport, use `<picture>` or separate crops, not one crop forced everywhere.
+- Do not force a single desktop crop into mobile if the subject or text loses meaning; mobile often needs a different crop, not just fewer pixels.
 
----
+## LCP, Lazy Loading, and Fetch Priority
 
-## Lazy Loading — When NOT to Use
-
-**Use `loading="lazy"`:**
+Use `loading="lazy"` for:
 - Below-the-fold images
-- Galleries, infinite scroll
+- Galleries and long lists
 
-**NEVER lazy load:**
-- Hero images / LCP images
-- First 2-3 visible images
-- Background images critical to layout
-- Images within 1000px from viewport top
+Do not lazy-load:
+- Hero or likely LCP images
+- First visible product or content images
+- Critical background replacements that define the first viewport
 
-**Rule:** LCP image must have `loading="eager"` or no attribute.
+Useful defaults:
+- LCP image: `loading="eager"` and consider `fetchpriority="high"`
+- Non-critical images: `loading="lazy"`
 
----
+## Aspect Ratio and CLS
 
-## Aspect Ratios — Prevent CLS
+Always reserve space:
 
-Always define dimensions:
 ```html
 <img width="800" height="600">
 ```
 
-Or CSS:
+Or:
+
 ```css
-.container { aspect-ratio: 16/9; }
+.container { aspect-ratio: 16 / 9; }
 ```
 
-**Common ratios:**
+Common ratios:
+
 | Ratio | Use |
-|-------|-----|
-| 16:9 | Video, hero banners |
+|------|-----|
+| 16:9 | Hero banners, video covers |
 | 4:3 | Traditional photos |
 | 3:2 | DSLR photos |
-| 1:1 | Social, avatars, products |
-| 21:9 | Cinematic banners |
+| 1:1 | Products, avatars, social |
+| 21:9 | Wide banners |
 
-**Rule:** Never load images without reserved space. CLS kills Core Web Vitals.
+- Never ship web images without reserved space if layout stability matters.
 
----
+## Format Rules for Web
 
-## File Naming
+- AVIF first when the stack and audience can handle it.
+- WebP is the pragmatic default for most modern photo delivery.
+- PNG stays useful for UI, screenshots, diagrams, and alpha-safe assets.
+- JPEG is still a fallback, not a failure, when compatibility wins.
+- SVG is ideal for icons and simple illustrations but must be validated against the target pipeline.
+- OG and social-preview images are a special case: PNG or high-quality JPEG often survive platform ingest more predictably than aggressively compressed modern formats.
+- Meaningful content images should not be hidden only in CSS backgrounds when semantic HTML image delivery would be more accessible and controllable.
 
-**Pattern:** `{descriptor}-{size}-{variant}.{ext}`
+## SVG and Text-in-Image Rules
 
-```
-hero-homepage-1920.webp
-product-shoe-red-640.jpg
-avatar-user-128@2x.png
-```
+- Run SVGs through SVGO.
+- Keep `viewBox`; remove hardcoded `width` and `height` when CSS should control size.
+- Inline very small critical SVGs; externalize bigger or reusable ones.
+- Avoid embedding essential copy inside raster images when HTML text should carry meaning.
+- If the SVG comes from design tools, inspect it for hidden raster layers, giant embedded paths, or exported cruft before shipping it.
 
-**Rules:**
-- Lowercase only
-- Hyphens, not underscores or spaces
-- Descriptive for SEO (`blue-running-shoes.jpg` not `IMG_4521.jpg`)
-- Include size when multiple variants exist
+## CMS and Pipeline Reality
 
----
+- Many CMSs and site builders resize, rename, or recompress uploads after you hand them off.
+- If the destination pipeline creates its own responsive derivatives, start from a clean master instead of pre-baking every size blindly.
+- A web upload that looks sharp in the media library can still be rendered too large in the layout and become blurry.
 
-## SVG Optimization
+## Delivery Traps
 
-- Run through SVGO (reduces 30-60%)
-- Remove `width`/`height` for CSS control
-- Keep `viewBox` — required for scaling
-- Inline critical SVGs (<2KB) to avoid HTTP requests
-- External for complex illustrations (>2KB)
-
-**Rule:** SVG icon should be <1KB after optimization.
-
----
-
-## WebP with Fallback
-
-```html
-<picture>
-  <source srcset="image.webp" type="image/webp">
-  <source srcset="image.jpg" type="image/jpeg">
-  <img src="image.jpg" alt="Description">
-</picture>
-```
-
-**AVIF** (if supported):
-```html
-<picture>
-  <source srcset="image.avif" type="image/avif">
-  <source srcset="image.webp" type="image/webp">
-  <img src="image.jpg" alt="Description">
-</picture>
-```
-
----
-
-## Image CDN Best Practices (Optional)
-
-If using a CDN service (Cloudinary, imgix, etc.):
-- Use auto-format: `f_auto`
-- Use auto-quality: `q_auto`
-- Specify exact dimensions in URL
-- Enable lazy loading at edge
-- Set cache headers (1 year for hashed URLs)
-
-**Note:** CDN services require their own API credentials configured separately. This skill does not manage CDN credentials.
-
----
+- Shipping one oversized source and trusting CSS to resize it.
+- Using one crop for every breakpoint even when the composition breaks on narrow screens.
+- Choosing AVIF for everything even when fallback or encoding time makes the workflow worse.
+- Forgetting that email builders, CMS pipelines, and some older browsers may still flatten the format decision back to JPEG or PNG.
 
 ## Performance Checklist
 
 ```
-□ All images compressed (WebP preferred)
-□ Lazy loading on below-fold images
-□ LCP image preloaded
-□ Dimensions specified (no CLS)
-□ srcset for responsive
-□ Total page images <1.5MB
-□ No images over 200KB
+□ LCP image not lazy-loaded
+□ Width/height or aspect-ratio reserved
+□ Modern format chosen intentionally
+□ srcset/sizes only for real breakpoints
+□ No oversized originals shipped to the browser
+□ Alt text present when the image conveys meaning
 ```

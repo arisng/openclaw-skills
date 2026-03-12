@@ -1,136 +1,60 @@
-# E-commerce Product Photography
+# E-commerce Product Images
 
-## Resolution & Dimensions
+## Resolution and Framing
 
-- **Minimum:** 1000 × 1000 px (enables Amazon zoom)
-- **Recommended:** 2000 × 2000 px
-- **Aspect ratio:** 1:1 for main images
-- **Zoom requirement:** 3x without pixelation (needs 2000px+ source)
-- **For jewelry/small items:** Minimum 1500px on longest edge
+- Minimum working baseline: **1000 × 1000 px**
+- Better zoom-safe default: **2000 × 2000 px**
+- Main catalog images often want **1:1**
+- Small products and detail shots usually need more source resolution, not more sharpening
 
----
+## Background and Edge Quality
 
-## Background Requirements
+- Main marketplace image often needs pure white or near-pure-white background.
+- Product fill commonly should sit around **85-95%** of the frame for major marketplaces.
+- Edges must be clean: no halos, dirty masks, or fringing.
+- If shadows are allowed, keep them subtle and consistent across the catalog.
+- Keep enough padding that the product does not feel cramped after marketplace cropping or thumbnail rounding.
 
-- **Main product image:** Pure white RGB(255, 255, 255)
-- **Tolerance:** No more than 5 RGB variance (250-255 OK)
-- **Product fill:** 85-95% of frame (Amazon requires 85% minimum)
-- **No watermarks, logos, or text** on main image
-- **Edge quality:** Clean, anti-aliased, 1-2px feathering
+## Color and Consistency
 
----
+- Use sRGB for marketplace delivery.
+- Do not auto-enhance product color without validating against the real item.
+- Keep crop margins, lighting direction, and white balance consistent across the set.
+- Catalog inconsistency makes the whole store feel lower quality even when each image is individually acceptable.
+- Variant images should preserve a consistent camera angle and scale unless the marketplace expects a different shot type.
+- If background removal is used, inspect edges around hair, glass, reflective metal, and fabric fringing at 100%.
 
-## Shadow & Reflection
+## Marketplace Rules
 
-- **Drop shadow:** 15-25% opacity, 5-10px offset, 20-30px blur
-- **Reflection (if used):** Maximum 30% opacity, fade within 20% of height
-- **Shadow angle:** Same across entire catalog (typically 135°)
-- **Contact shadow:** 3-5px soft edge at product base
+| Platform | Typical baseline |
+|----------|------------------|
+| Amazon | White main image, square-safe, zoom-friendly |
+| Shopify | Flexible background, but consistency matters |
+| Etsy | Stronger lifestyle freedom, but thumbnails still need clarity |
+| Walmart | White-background expectations are stricter |
 
----
+- Marketplace uploaders normalize aggressively; validate the processed result after upload when it matters.
+- Some catalogs require the main image to be cleaner and stricter than secondary lifestyle images; do not apply one styling rule to both.
+- If a store theme renders product cards larger than the uploaded image can support, the fix is usually source dimensions and theme sizing together, not more sharpening alone.
 
-## Color Accuracy
+## Product-Image Traps
 
-- **Color variance:** Maximum ΔE of 2.0 from actual product
-- **White balance:** 5500-6500K (daylight neutral)
-- **Color profile:** sRGB embedded
-- **Never auto-enhance colors** without validation
-- **Document hex codes** for brand colors
+- Product too small in frame
+- Background not truly white where required
+- Detail lost because the source was over-compressed
+- Variant images cropped inconsistently
+- Reflection, shadow, or mask style changing from product to product
+- Text overlays or badges that are not allowed on main images
+- Cutout edges that look fine zoomed out but fail at zoom or marketplace moderation
+- Uploading already heavily compressed files and then letting the marketplace compress them again
 
----
-
-## Marketplace Requirements
-
-| Platform | Min Pixels | Background | Max Size | Format |
-|----------|-----------|------------|----------|--------|
-| Amazon | 1000×1000 | Pure white | 10 MB | JPEG/PNG |
-| eBay | 500×500 | White preferred | 12 MB | JPEG/PNG |
-| Shopify | 2048×2048 | Any | 20 MB | JPEG/PNG/WebP |
-| Etsy | 2000×2000 | Any | 10 MB | JPEG/PNG |
-| Walmart | 1000×1000 | Pure white | 5 MB | JPEG |
-
----
-
-## File Naming Convention
+## Quality Checklist
 
 ```
-{SKU}_{ViewType}_{Sequence}.{ext}
-```
-
-**Examples:**
-- `ABC123_MAIN_01.jpg`
-- `ABC123_BACK_02.jpg`
-- `ABC123_DETAIL_03.jpg`
-
-**View types:** MAIN, FRONT, BACK, SIDE, DETAIL, LIFESTYLE, SIZE
-
-**Rules:**
-- No spaces — use underscores
-- Lowercase extensions (`.jpg` not `.JPG`)
-- Maximum 80 characters total
-
----
-
-## File Format & Compression
-
-- **Primary:** JPEG for product photos
-- **Quality:** 80-92% compression
-- **PNG:** Only when transparency required
-- **WebP:** Secondary format when supported
-- **Target size:** 100-500 KB
-
----
-
-## Catalog Consistency
-
-- Same lighting setup across all products in category
-- Consistent crop margins: 5-10% padding all sides
-- Uniform shadow direction
-- Color temperature: ±200K variance maximum
-- Product centering: within 2% of frame center
-
----
-
-## Alt Text for SEO
-
-**Structure:** `[Brand] [Product Name] [Key Feature] [Color/Size]`
-
-**Example:**
-```
-"Nike Air Max 90 Running Shoes in White/Black, Men's Size 10, Mesh Upper"
-```
-
-**Rules:**
-- 80-125 characters optimal
-- Include: material, use case, features
-- Avoid: "Image of", "Photo of", keyword stuffing
-- Unique per image variant
-
----
-
-## Multi-Image Set (Amazon)
-
-| Position | Content |
-|----------|---------|
-| Main | Product on white, front view |
-| 2 | Back/alternate angle |
-| 3 | Side view |
-| 4 | Detail/feature close-up |
-| 5 | Scale/size reference |
-| 6 | Lifestyle/in-use |
-| 7+ | Additional angles, packaging |
-
----
-
-## Quality Control Checklist
-
-```
-□ No highlight/shadow clipping
-□ Clean edges (no halos or fringing)
-□ Dust spots removed
-□ Consistent exposure (±0.3 EV)
-□ No chromatic aberration
-□ Metadata stripped (EXIF)
-□ Background pure white verified
-□ Color accuracy checked
+□ Product fills the frame appropriately
+□ White-background requirement checked
+□ Edge cleanup verified at 100%
+□ Zoom/detail still holds up
+□ Catalog crop and lighting look consistent
+□ Metadata/privacy decision made
 ```

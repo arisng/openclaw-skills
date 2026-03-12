@@ -1,132 +1,70 @@
-# Photography & Color Management
+# Photography, Color, and Print
 
 ## Color Profiles
 
-### The Rules
 | Profile | Use For |
 |---------|---------|
-| **sRGB** | Web delivery — always convert before export |
-| **Adobe RGB** | Print workflow, wider gamut |
-| **ProPhoto RGB** | Maximum gamut, RAW editing |
+| `sRGB` | Web delivery, most marketplaces, social |
+| `Adobe RGB` | Print workflows with wider gamut |
+| `ProPhoto RGB` | High-end RAW editing and master files |
 
-**Critical:** Browsers assume sRGB. Adobe RGB images look washed out on web.
+- Browsers and many upload pipelines effectively expect sRGB.
+- Wide-gamut files exported for the web without conversion often look washed out or inconsistent.
+- Embed the ICC profile when the destination respects color management.
 
-### Conversion Path
-ProPhoto → Adobe RGB → sRGB (if gamut is wide)
+## RAW and Non-Destructive Editing
 
-Direct ProPhoto → sRGB can cause clipping.
+- RAW files are source negatives; do not overwrite them.
+- Keep edits in sidecars, catalogs, layered masters, or non-destructive instructions when possible.
+- White balance corrections are safer in RAW than in JPEG.
+- Different RAW converters can produce visibly different output from the same file.
+- Keep at least one master export suitable for future edits before creating flattened delivery versions.
+- Noise reduction, clarity, and sharpening should be balanced for the final destination; settings that feel dramatic on screen often print badly.
 
-**Always embed ICC profile.** Untagged images render differently everywhere.
+## Metadata and EXIF
 
----
+Preserve when needed:
+- Copyright and author data
+- Editorial provenance
+- Archive or legal context
 
-## Metadata & EXIF
+Strip when appropriate:
+- Public web publishing
+- Sensitive location data
+- Irrelevant camera metadata on lightweight delivery assets
 
-### Preserve by Default
-- Camera settings (ISO, aperture, shutter)
-- Timestamps (DateTimeOriginal)
-- Copyright, IPTC contact info
+GPS warning:
+- Strip GPS before public delivery for homes, private locations, or sensitive subjects.
 
-### Strip When
-- Publishing to web (privacy)
-- Stock submission (some agencies)
-- Explicit request
+## Print Export Rules
 
-### GPS Warning
-**Strip GPS** before publishing:
-- Photos of homes
-- Private locations
-- Sensitive subjects
+| Setting | Web | Print |
+|--------|-----|-------|
+| Color space | sRGB | Adobe RGB or printer profile |
+| Resolution | 72-150 PPI guidance | 300 PPI typical |
+| Format | WebP/JPEG/PNG | TIFF or high-quality JPEG |
+| Metadata | Minimal | Preserve if needed |
 
-Ask before including GPS in public files.
+- Print work must care about physical size, bleed, sharpening target, and final output process.
+- A web export that looks good on screen is not automatically print-safe.
+- Ask whether the destination printer, lab, or publication has its own profile and export requirements before assuming a generic print preset.
+- Soft-proofing or at least checking for gamut clipping is worth it when brand colors or skin tones must survive print.
 
----
+## Retouching Traps
 
-## RAW Handling
-
-### Core Rule
-RAW files are negatives — **NEVER modify the original**.
-
-Edits go into:
-- Sidecar files (XMP)
-- Catalog database (Lightroom, Capture One)
-
-### White Balance
-- **RAW:** Non-destructive, full adjustment
-- **JPEG:** Destructive, causes color shifts/banding
-
-Always recommend RAW for color correction.
-
-### Different Converters = Different Results
-Adobe Camera Raw ≠ Capture One ≠ DxO ≠ Darktable
-
-Same RAW, different output. Ask which software.
-
----
-
-## Non-Destructive Editing
-
-### Layer Preservation
-- Return PSD/TIFF with layers intact
-- Only flatten for **final delivery**
-- Smart Objects: Maintain for resizing (preserves resolution)
-
-### Lightroom/Capture One
-Catalog stores instructions, not pixels. 100% reversible until export.
-
----
-
-## Batch Processing
-
-### Test First
-Never run untested presets on 500 images.
-
-Test on 3-5 images covering:
-- Different lighting
-- Different exposures
-- Different camera settings
-
-### Naming Convention
-```
-YYYYMMDD_ProjectName_####.ext
-```
-- No spaces or special characters
-- Sequence numbers must not restart mid-batch
-
----
-
-## Export Settings
-
-### Web
-| Setting | Value |
-|---------|-------|
-| Color space | sRGB |
-| DPI | 72-150 |
-| Format | JPEG 75-85% or WebP |
-| Resize | Long edge 2000-2400px max |
-| Metadata | Strip (privacy) or basic only |
-| Sharpening | Screen, standard |
-
-### Print
-| Setting | Value |
-|---------|-------|
-| Color space | Adobe RGB (or printer profile) |
-| DPI | 300 |
-| Format | TIFF or high-quality JPEG (95%+) |
-| Resize | Match print dimensions |
-| Metadata | Preserve copyright |
-| Sharpening | Glossy/matte, high |
-
----
+- Over-smoothing skin or texture until the file looks synthetic.
+- Aggressive sharpening halos that only become obvious in print.
+- Cropping too tightly and leaving no safe room for print trims or editorial layouts.
 
 ## Quality Control
 
-Before delivery, verify:
+Before delivery:
+
 ```
-□ No highlight/shadow clipping
-□ Clean edges (no halos)
-□ Dust spots removed
-□ Consistent exposure (±0.3 EV)
-□ No chromatic aberration
-□ Correct color profile embedded
+□ Orientation fixed
+□ ICC profile intentional
+□ No clipped highlights or blocked shadows
+□ No obvious halos or oversharpening
+□ Dust spots or sensor marks checked
+□ Metadata decision made on purpose
 ```

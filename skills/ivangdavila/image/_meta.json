@@ -3,11 +3,16 @@
   "slug": "image",
   "displayName": "Image",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1771202626097,
-    "commit": "https://github.com/openclaw/skills/commit/243aab4818797ef2f038db4157262cd83ae23c09"
+    "version": "1.0.4",
+    "publishedAt": 1773254447006,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1771202626097,
+      "commit": "https://github.com/openclaw/skills/commit/243aab4818797ef2f038db4157262cd83ae23c09"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1770940779570,
