@@ -22,7 +22,8 @@ KEYWORDS = {
     "video": ["video", "视频", "i2v", "t2v"],
     "audio": ["audio", "语音", "tts", "speech"],
     "asr": ["asr", "语音识别", "转写", "stt"],
-    "embedding": ["embedding", "向量", "embed", "rerank"],
+    "embedding": ["embedding", "向量", "embed"],
+    "rerank": ["rerank", "重排"],
     "llm": ["llm", "qwen", "chat", "对话", "文本生成"],
 }
 
@@ -30,8 +31,9 @@ KNOWN_SKILLS = {
     "image": "skills/ai/image/alicloud-ai-image-qwen-image",
     "video": "skills/ai/video/alicloud-ai-video-wan-video",
     "audio": "skills/ai/audio/alicloud-ai-audio-tts",
-    "embedding": "skills/ai/search/alicloud-ai-search-dashvector",
-    "asr": "(missing)",
+    "embedding": "skills/ai/search/alicloud-ai-search-text-embedding",
+    "rerank": "skills/ai/search/alicloud-ai-search-rerank",
+    "asr": "skills/ai/audio/alicloud-ai-audio-asr",
     "llm": "(missing)",
 }
 
