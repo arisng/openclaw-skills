@@ -3,9 +3,15 @@
   "slug": "openclaw-msg-delivery-guide",
   "displayName": "OpenClaw Msg Delivery Guide",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773152245716,
-    "commit": "https://github.com/openclaw/skills/commit/f917a6d5eb1906df0a47dd955f93796f322e515f"
+    "version": "1.0.5",
+    "publishedAt": 1773383911592,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773152245716,
+      "commit": "https://github.com/openclaw/skills/commit/f917a6d5eb1906df0a47dd955f93796f322e515f"
+    }
+  ]
 }

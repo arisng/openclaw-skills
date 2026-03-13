@@ -1,176 +1,188 @@
 ---
 name: openclaw-msg-delivery-guide
-description: Prevent vague follow-up promises in OpenClaw by making message delivery explicit. Use when the user asks how a later result will reach them, how to bind completion to notification, or how to set up scheduled tasks that must notify the user. Choose among cron delivery, subagent completion delivery, background-task follow-up, and `message` + `NO_REPLY`. Default scheduled notifications to OpenClaw cron with `--session isolated` and explicit delivery fields.
+description: Ensure later replies actually reach the user in OpenClaw. Use when the user asks for reminders, scheduled checks, follow-up notifications, completion updates, recurring monitoring, or any task where execution and user-visible delivery happen in different steps. Default to cron for scheduled or notification-critical tasks, use subagent completion for background-result handoff, use direct reply when finishing now, and avoid heartbeat unless the user explicitly wants a soft, low-precision follow-up.
 metadata:
   openclaw:
     requires:
       bins: ["openclaw"]
       files: ["~/.openclaw/cron/jobs.json"]
-      note: "This skill inspects local OpenClaw cron state and may run `openclaw cron` commands or read the persisted cron job file for verification."
+      note: "This skill may inspect and modify local OpenClaw cron configuration, run openclaw cron commands, manually trigger jobs for verification, and send test notifications while validating delivery behavior against the local scheduler store."
 ---
 
 # OpenClaw Message Delivery Guide
 
-## Problem this skill solves
+## Core problem
 
-This skill prevents a common failure mode:
+Prevent this failure mode:
 
-- the agent says "I will send it later"
-- background work starts
+- work starts
+- the agent promises a later reply
 - no real delivery path is bound
-- the user never receives the promised follow-up
+- the user never receives the result
 
-Use this skill to make message delivery explicit before promising a later update.
+Treat **execution** and **delivery** as separate things.
+Starting work is not the same as binding a later user-visible message.
 
-## Local scope disclosure
+## Core rules
 
-This skill inspects local OpenClaw scheduler state.
-It may:
-- run `openclaw cron list`, `openclaw cron run`, `openclaw cron edit`, `openclaw cron enable`, or `openclaw cron disable`
-- read `~/.openclaw/cron/jobs.json` to verify persisted cron configuration
+### Rule 1: never promise a later reply without a delivery path
 
-Use it when the user wants scheduler or delivery setup, editing, migration, verification, or debugging.
+Before saying things like:
 
-## Core rule
+- "reply in 5 minutes"
+- "watch this task and tell me if there is progress"
+- "send it later"
+- "check this every hour and notify me"
 
-If you say "I will send it when it is done", you must be able to answer these 3 questions clearly:
+be able to answer all 3:
 
-1. What event counts as completion?
+1. What event counts as completion or reportable progress?
 2. Who sends the later message?
-3. Which delivery path sends it to the user?
+3. Which mechanism actually delivers it?
 
-If you cannot answer all 3, the follow-up is not really bound yet.
+If any answer is unclear, resolve the delivery path first: choose the mechanism, bind the target, and only then promise the follow-up.
 
-Do not rely on vague intent like "I will send it later".
-Do not assume background work will automatically create a user-visible message.
+### Rule 2: choose mechanism by delivery need
 
-## Default choice
+Default map:
 
-For anything that is both **scheduled** and **needs notification**, default to:
+- **Direct reply**: result will be sent now
+- **Cron**: exact time or repeated schedule; notification matters
+- **Subagent**: background task that should report back when finished
+- **Heartbeat**: soft, low-precision check-in only; avoid by default and use only when the user explicitly accepts a soft follow-up
+- **`message` send**: visible result already sent by tool
 
-- **OpenClaw cron**
-- **`--session isolated`**
-- **explicit delivery**: `--announce --channel <channel> --to <destination>`
+### Rule 3: scheduled + notify => cron
 
-Use this default for requests like:
-- "Remind me later"
-- "Run this every day and notify me"
-- "Check this every hour and send me the result"
-- "Run this later and notify me"
+For anything like:
 
-Do **not** default to these unless the user explicitly asks:
-- **Heartbeat**
-- **OpenClaw cron `main` session**
-- **System cron**
+- "reply in 5 minutes"
+- "remind me in 20 minutes"
+- "check this every hour and notify me if it changes"
+- "send a report every day at 9"
 
-## Minimal cron template
+prefer:
+
+- **one-shot cron** with `--at` for a single future reply
+- **recurring cron** with `--cron` for repeated checks
+- **`--session isolated`** when the run should execute independently and deliver its own result
+- explicit delivery fields derived from current session metadata
+
+Do not default to cron main-session runs unless the user explicitly wants main-session / heartbeat-style behavior.
+
+### Rule 4: background exec does not imply notification
+
+Starting `exec` / `process` / a long-running task only means work has started.
+It does **not** mean the user will later receive an update.
+If the user expects a later message, bind a real follow-up path.
+
+## Key examples
+
+### 1. "reply in 5 minutes"
+
+Use **one-shot cron**, not heartbeat.
 
 ```bash
 openclaw cron add \
-  --name "Job name" \
-  --cron "0 * * * *" \
+  --name "Reply in 5 minutes" \
+  --at "5m" \
   --session isolated \
-  --message "Do the task. If there is nothing worth reporting, stay silent." \
+  --message "Reply to the user with the requested follow-up. If nothing meaningful changed, say that clearly." \
   --announce \
   --channel <channel> \
   --to <destination>
 ```
 
-Use the flags on purpose:
-- `--session isolated`: avoid main-session delivery ambiguity
-- `--announce`: send outward, not just into cron history
-- `--channel <channel>`: set the channel explicitly
-- `--to <destination>`: set the exact destination explicitly
+### 2. "run this in the background and tell me when it is done"
 
-Useful options:
-- `--light-context`: prefer for routine jobs
-- `--timeout-seconds <n>`: increase for longer tasks
-- `--exact`: use when exact timing matters
+Use **subagent** when the main need is background execution plus completion report.
 
-Do **not** add `--model` unless the user explicitly asks.
+Required behavior:
 
-## Binding templates
+- start the task
+- tell the user the task has started
+- when the subagent completion announce is handed back to the requester session, deliver that result to the user immediately
 
-### 1. Subagent completion
+### 3. "check this site every hour and notify me if it changes"
 
-Use when a subagent does the work and the user expects the final result in chat.
+Use **recurring cron isolated + explicit delivery**.
 
-Answer the 3 questions like this:
-1. **Completion event**: the subagent completion event arrives
-2. **Who sends**: the current assistant session
-3. **Delivery path**: normal assistant reply in the current chat, or `message(action=send)` if doing a proactive send
+```bash
+openclaw cron add \
+  --name "Hourly site check" \
+  --cron "0 * * * *" \
+  --session isolated \
+  --message "Check the target site. Notify only when there is a real change; otherwise stay silent." \
+  --announce \
+  --channel <channel> \
+  --to <destination>
+```
 
-Rules:
-- `sessions_spawn` only starts the work; it does **not** mean the result has already been sent
-- Do not say "I will send it when done" unless you will actually send the completion update when that event arrives
-- If a runtime completion event asks for user delivery, rewrite it in your own voice and send it immediately
+### 4. visible result already sent via `message`
 
-### 2. Cron notification
+If the user-visible result has already been delivered via `message(action=send)`, do not send a duplicate normal reply; return only:
 
-Use when the task should run later or repeatedly and notify the user.
+`NO_REPLY`
 
-Answer the 3 questions like this:
-1. **Completion event**: each cron run finishes and produces a reportable result
-2. **Who sends**: OpenClaw cron delivery
-3. **Delivery path**: `--announce --channel <channel> --to <destination>`
+## Bad cases
 
-Rules:
-- A cron job without delivery fields is not enough if the user expects a visible notification
-- If "nothing new" should be silent, say so directly in `--message`
-- Prefer `isolated` session unless the user explicitly wants another mode
+- Promise a later reply without naming the delivery path
+- Use heartbeat for exact reminders or required notifications
+- Start background `exec` and assume completion will surface automatically
+- Create cron jobs without explicit delivery when the user expects a visible notification
+- Bind only a final completion path when the user actually asked for progress updates
 
-### 3. `message` + `NO_REPLY`
+## Test and verification
 
-Use when the visible reply has already been sent through the `message` tool.
+### Cron
 
-Answer the 3 questions like this:
-1. **Completion event**: `message(action=send)` succeeds
-2. **Who sends**: the `message` tool / channel integration
-3. **Delivery path**: the `message` send itself
+After add/edit:
 
-Rule:
-- After a successful `message(action=send)` that already delivered the user-visible content, return only `NO_REPLY`
-
-Do **not** confuse this with future follow-up delivery:
-- `NO_REPLY` suppresses duplicate output in the current turn
-- it does **not** create a later notification by itself
-
-## Common mistakes
-
-### Background exec/process
-
-Starting a background `exec` or `process` only means the work is running.
-It does **not** mean completion will be announced.
-
-If the user expects a later message, add a real follow-up path.
-
-### Vague status promises
-
-Avoid:
-- "I will send it later" with no delivery path
-- "I will notify you when it is done" when you cannot say who sends it and how
-- "I am following up" when nothing user-visible will arrive
-
-Prefer:
-- "I have started the background task; there is no final result yet."
-- "I have set up a notification every 10 minutes."
-- "This message confirms the start; I will send the completion result separately."
-
-## How to fill `channel` and `to`
-
-- If the result should go to the **current chat**, fill `--channel` and `--to` from current session metadata
-- If the result should go somewhere else, confirm the destination first
-- Do **not** hardcode personal identifiers into this skill
-
-## Test after setup or edit
-
-For periodic jobs, test before relying on the schedule.
-
-Minimum check:
 1. confirm the job exists in `openclaw cron list`
-2. verify `~/.openclaw/cron/jobs.json`, especially `schedule`, `payload.message`, and delivery fields
-3. run `openclaw cron run <job-id>` once
-4. confirm the notification actually reached the intended chat
+2. verify stored fields in `~/.openclaw/cron/jobs.json`
+3. run the job once manually
+4. confirm the notification reached the intended chat
 
-Default closing move:
-- ask the user to test once now
+For recurring jobs, do not rely on the schedule before doing this manual trigger once.
+
+Verify at least:
+
+- schedule kind (`at` vs `cron`)
+- session target
+- payload message
+- delivery mode
+- delivery channel
+- delivery target
+
+Do not require model verification here; use the default model unless the user explicitly asked for a model override.
+
+When changing a cron job, do not trust CLI output alone; verify the stored job.
+
+### Background-task follow-up
+
+Verify:
+
+1. the task actually started
+2. the user knows whether the current turn already delivered a result or not
+3. the completion path is explicit
+
+## Extra guidance
+
+### Progress mode
+
+For long-running work, classify the expected update style before promising follow-up:
+
+- **result-only**
+- **stage updates**
+- **fixed-interval updates**
+
+### Silent-if-no-change
+
+For recurring checks, prefer:
+
+- notify on real change
+- otherwise stay silent
+
+### Current-chat delivery
+
+When the result should come back to the same chat, derive delivery target from current session metadata instead of hardcoding user-specific identifiers.
