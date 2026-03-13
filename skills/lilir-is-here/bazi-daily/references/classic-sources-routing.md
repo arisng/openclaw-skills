@@ -7,7 +7,7 @@
 - A（原理层，优先文本）：`references/classics/A_滴天髓.txt`
 - B（结构层，优先文本）：`references/classics/B_渊海子平.txt`
 - C（调候层，优先文本）：`references/classics/C_穷通宝鉴.txt`
-- PDF 回退：`/Users/qinghuiren/Downloads/滴天髓.pdf`、`/Users/qinghuiren/Downloads/渊海子平.pdf`、`/Users/qinghuiren/Downloads/穷通宝鉴.pdf`
+- PDF 回退仅在操作者已显式提供对应文件时启用；不要依赖固定本机路径。
 
 ## Routing Rules
 

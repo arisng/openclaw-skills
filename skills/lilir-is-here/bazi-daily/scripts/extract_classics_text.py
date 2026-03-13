@@ -8,10 +8,10 @@ from pathlib import Path
 from pypdf import PdfReader
 
 
-DEFAULT_SOURCES = {
-    "A_滴天髓": Path("/Users/qinghuiren/Downloads/滴天髓.pdf"),
-    "B_渊海子平": Path("/Users/qinghuiren/Downloads/渊海子平.pdf"),
-    "C_穷通宝鉴": Path("/Users/qinghuiren/Downloads/穷通宝鉴.pdf"),
+DEFAULT_FILENAMES = {
+    "A_滴天髓": "滴天髓.pdf",
+    "B_渊海子平": "渊海子平.pdf",
+    "C_穷通宝鉴": "穷通宝鉴.pdf",
 }
 
 
@@ -42,9 +42,13 @@ def write_md(title: str, pages: list[str], output_md: Path) -> None:
     output_md.write_text("\n".join(lines), encoding="utf-8")
 
 
-def run(output_dir: Path, generate_md: bool) -> None:
+def resolve_sources(source_dir: Path) -> dict[str, Path]:
+    return {key: source_dir / filename for key, filename in DEFAULT_FILENAMES.items()}
+
+
+def run(source_dir: Path, output_dir: Path, generate_md: bool) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
-    for key, pdf_path in DEFAULT_SOURCES.items():
+    for key, pdf_path in resolve_sources(source_dir).items():
         if not pdf_path.exists():
             raise FileNotFoundError(f"Missing source pdf: {pdf_path}")
         pages = extract_text(pdf_path)
@@ -61,6 +65,11 @@ def parse_args() -> argparse.Namespace:
         description="Extract local classic PDFs to UTF-8 txt/md files for fast retrieval."
     )
     parser.add_argument(
+        "--source-dir",
+        required=True,
+        help="Directory containing 滴天髓.pdf / 渊海子平.pdf / 穷通宝鉴.pdf.",
+    )
+    parser.add_argument(
         "--output-dir",
         default="bazi-daily/references/classics",
         help="Output directory for extracted files.",
@@ -75,7 +84,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    run(Path(args.output_dir), generate_md=args.md)
+    run(Path(args.source_dir), Path(args.output_dir), generate_md=args.md)
 
 
 if __name__ == "__main__":
