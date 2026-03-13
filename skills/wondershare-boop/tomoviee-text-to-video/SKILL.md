@@ -102,6 +102,16 @@ See `references/prompt_guide.md` for detailed guidance.
 
 ## External Resources
 
+**🌐 Network Routing Notice:**
+- **Global / Overseas Network:** Access the international site (`.ai`).
+- **Mainland China Network:** Access the domestic site (`.cn`), which offers localized latency and compliance.
+
+### Global / Overseas (.AI)
 - **Developer Portal**: https://www.tomoviee.ai/developers.html
 - **API Documentation**: https://www.tomoviee.ai/doc/
+- **Get API Credentials**: Register at developer portal
+
+### Mainland China (.CN)
+- **Developer Portal**: https://www.tomoviee.cn/developers.html
+- **API Documentation**: https://www.tomoviee.cn/doc/
 - **Get API Credentials**: Register at developer portal
