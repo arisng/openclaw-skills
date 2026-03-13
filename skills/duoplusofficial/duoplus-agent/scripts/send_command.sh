@@ -13,6 +13,12 @@ set -euo pipefail
 DEVICE_ID="${1:?Usage: send_command.sh <DEVICE_ID> <ACTION_JSON>}"
 ACTION_JSON="${2:?Usage: send_command.sh <DEVICE_ID> <ACTION_JSON>}"
 
+# 验证 DEVICE_ID 格式：仅允许 IP:PORT（如 192.168.1.100:5555）或设备序列号（字母数字和常见分隔符）
+if ! echo "$DEVICE_ID" | grep -qE '^[a-zA-Z0-9._:/-]+$'; then
+  echo "❌ Invalid DEVICE_ID format: contains disallowed characters" >&2
+  exit 1
+fi
+
 BROADCAST_ACTION="com.duoplus.service.PROCESS_DATA"
 TASK_ID="openclaw-$(date +%s)-$$"
 MD5="openclaw-md5"

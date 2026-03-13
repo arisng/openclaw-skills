@@ -1,226 +1,113 @@
 ---
 name: duoplus-agent
 displayName: DuoPlus CloudPhone Agent
-description: Control Android cloud phones via ADB - tap, swipe, type, screenshot, read UI elements. Send commands to DuoPlus cloud phones running.
-version: 1.0.0
+description: Control Android cloud phones via ADB broadcast commands - tap, swipe, type, screenshot, read UI elements. Requires DuoPlus CloudPhone service running on the device.
+version: 1.0.9
 license: MIT-0
 metadata:
   clawdbot:
     emoji: "📱"
     requires:
-      bins: ["adb"]
-changelog: change send_command.sh
+      bins: ["adb", "cwebp"]
+changelog: Restructure SKILL.md, add cwebp compression, use uiautomator for UI analysis
 ---
 # DuoPlus CloudPhone Agent
-Control Android cloud phones remotely through ADB broadcast commands. The target device must be running **DuoPlus CloudPhone**.
 
-For more information about our product and services, visit [DuoPlus Official Website](https://www.duoplus.net/).
+Control and automate DuoPlus cloud phones using ADB broadcast commands.
 
-## Connection
+For more information, visit [DuoPlus Official Website](https://www.duoplus.net/).
 
-Before any operation, connect to the device:
+## Connecting Devices
 
+### Wireless Connection
 ```bash
-# List available devices
-adb devices -l
-
-# Connect to remote device (if needed)
 adb connect <IP>:<PORT>
+adb devices -l
 ```
 
 All subsequent commands use `-s <DEVICE_ID>` to target a specific device.
 
-## Environment Check
+## Common Workflows
 
-This skill only works on DuoPlus cloud phones with Service version >= 2.0.0. Before using any commands, verify the device is compatible:
-
+### Launching an App
 ```bash
-# Check if device is a supported DuoPlus cloud phone
-scripts/check_env.sh <DEVICE_ID>
-
-# Or without device ID (uses default connected device)
-scripts/check_env.sh
+scripts/send_command.sh <DEVICE_ID> '{"action_name":"OPEN_APP","params":{"package_name":"com.tencent.mm"}}'
 ```
 
-The script checks `/data/misc/dplus/version` on the device. If the file doesn't exist or the version is below 2.0.0, the device is not supported.
-
-You can also check manually:
+### Analyzing the UI
+Dump and pull the UI hierarchy to find element coordinates and attributes:
 ```bash
-adb -s <DEVICE_ID> shell cat /data/misc/dplus/version
+adb -s <DEVICE_ID> shell uiautomator dump /sdcard/view.xml && adb -s <DEVICE_ID> pull /sdcard/view.xml ./view.xml
+```
+Then grep for text or resource IDs to find `bounds="[x1,y1][x2,y2]"`.
+
+### Interacting with Elements
+
+All interactions are sent via the helper script as JSON commands:
+
+- **Tap coordinate**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"CLICK_COORDINATE","params":{"x":500,"y":500}}'`
+- **Tap element by text**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"CLICK_ELEMENT","params":{"text":"Login"}}'`
+  - Optional params: `resource_id`, `class_name`, `content_desc`, `element_order` (0-based index)
+- **Long press**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"LONG_COORDINATE","params":{"x":500,"y":500,"duration":1000}}'`
+- **Double tap**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"DOUBLE_TAP_COORDINATE","params":{"x":500,"y":500}}'`
+- **Type text**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"INPUT_CONTENT","params":{"content":"Hello","clear_first":true}}'`
+  - Must tap the input field first to focus it
+- **Keyboard key**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"KEYBOARD_OPERATION","params":{"key":"enter"}}'`
+  - Supported keys: enter, delete, tab, escape, space
+- **Swipe**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"SLIDE_PAGE","params":{"direction":"up","start_x":487,"start_y":753,"end_x":512,"end_y":289}}'`
+  - `direction`: up/down/left/right (required). Coordinates are optional.
+- **Home**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"GO_TO_HOME","params":{}}'`
+- **Back**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"PAGE_BACK","params":{}}'`
+- **Wait**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"WAIT_TIME","params":{"wait_time":3000}}'`
+- **Wait for element**: `scripts/send_command.sh <DEVICE_ID> '{"action_name":"WAIT_FOR_SELECTOR","params":{"text":"Loading complete","timeout":10000}}'`
+- **End task** (only when stuck): `scripts/send_command.sh <DEVICE_ID> '{"action_name":"END_TASK","params":{"success":false,"message":"reason"}}'`
+
+All action commands are fire-and-forget — they do NOT return results. Take a screenshot after each action to verify.
+
+### Visual Verification
+
+Take a screenshot, compress with cwebp, and pull to local for analysis:
+```bash
+# Take screenshot on device
+adb -s <DEVICE_ID> shell screencap -p /sdcard/screen.png
+
+# Pull to local
+adb -s <DEVICE_ID> pull /sdcard/screen.png ./screen.png
+
+# Compress to WebP for smaller file size (optional, recommended for vision model)
+cwebp -q 60 -resize 540 0 ./screen.png -o ./screen.webp
 ```
 
-## How Commands Work
+If `cwebp` is not available, use the PNG directly.
 
-Commands are sent as Base64-encoded JSON via ADB broadcast:
+## How Commands Work (Internal)
 
-```bash
-# 1. Build JSON payload
-JSON='{"task_type":"ai","action":"execute","task_id":"TASK_ID","md5":"MD5","action_name":"ACTION","params":{...}}'
-
-# 2. Base64 encode
-BASE64=$(echo -n "$JSON" | base64 -w 0)
-
-# 3. Send broadcast
-adb -s <DEVICE_ID> shell am broadcast -a com.duoplus.service.PROCESS_DATA --es message "$BASE64"
-```
-
-Generate a unique task_id per session (e.g. `openclaw-$(date +%s)`). Use a fixed md5 like `openclaw-md5`.
-
-## Response Model
-
-There are two types of commands with different response behaviors:
-
-### Query command (synchronous response)
-`get_ui_state` is the only query command. The broadcast receiver returns a JSON response directly in the broadcast result data, containing UI element descriptions and a Base64-encoded screenshot. You can read the response from the broadcast output.
-
-### Action commands (fire-and-forget)
-All `action: "execute"` commands (CLICK_COORDINATE, INPUT_CONTENT, SLIDE_PAGE, etc.) are fire-and-forget. They do NOT return execution results. After sending an action command, you should:
-1. Wait 1-3 seconds for the operation to complete
-2. Call `get_ui_state` to observe the current screen state and verify the result
-
-## Available Actions
-
-### Screenshot (has response)
-
-**PAGE_SCREENSHOT** - Take a compressed screenshot and optionally save to a specified path
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"PAGE_SCREENSHOT","params":{"save_path":"/sdcard/screenshot.webp"}}'
-```
-- `save_path` (optional): file path on device to save the compressed screenshot (also accepts `path` as alias). If omitted, screenshot is only returned as Base64 in the response.
-
-Response JSON contains:
-- `screenshot`: Base64-encoded compressed image
-- `result_text`: the actual saved file path on success, or error message on failure. Empty if `save_path` was not specified.
-
-To retrieve the saved file from the device:
-```bash
-adb -s <DEVICE_ID> pull /sdcard/screenshot.webp ./screenshot.webp
-```
-
-### Screen Reading (has response)
-
-**get_ui_state** - Get interactive UI elements + compressed screenshot (Base64)
-```bash
-JSON='{"task_type":"ai","action":"get_ui_state","task_id":"ID","md5":"MD5","lang":"en"}'
-```
-Note: This uses `action: "get_ui_state"` (NOT `action: "execute"`).
-
-Response JSON contains:
-- `success`: boolean
-- `message`: text description of all interactive UI elements on screen
-- `screenshot`: Base64-encoded compressed image of current screen
-- `current_app`: package name of the foreground app
-
-This is the primary way to observe the device screen. Use it before and after every action to understand what happened.
-
-### Navigation (fire-and-forget)
-
-**GO_TO_HOME** - Press Home button
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"GO_TO_HOME","params":{}}'
-```
-
-**PAGE_BACK** - Press Back button
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"PAGE_BACK","params":{}}'
-```
-
-**OPEN_APP** - Launch app by package name
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"OPEN_APP","params":{"package_name":"com.tencent.mm"}}'
-```
-
-### Tap & Click (fire-and-forget)
-
-**CLICK_COORDINATE** - Tap at coordinates (0-1000 relative system, top-left=0,0, bottom-right=1000,1000)
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"CLICK_COORDINATE","params":{"x":500,"y":500}}'
-```
-
-**CLICK_ELEMENT** - Click UI element by text, resource_id, or content_desc
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"CLICK_ELEMENT","params":{"text":"Login"}}'
-```
-Optional params: `resource_id`, `class_name`, `content_desc`, `element_order` (0-based index when multiple match)
-
-**LONG_COORDINATE** - Long press at coordinates
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"LONG_COORDINATE","params":{"x":500,"y":500,"duration":1000}}'
-```
-
-**DOUBLE_TAP_COORDINATE** - Double tap at coordinates
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"DOUBLE_TAP_COORDINATE","params":{"x":500,"y":500}}'
-```
-
-### Input (fire-and-forget)
-
-**INPUT_CONTENT** - Type text into focused input field (must tap field first)
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"INPUT_CONTENT","params":{"content":"Hello","clear_first":true}}'
-```
-
-**KEYBOARD_OPERATION** - Press keyboard key (enter/delete/tab/escape/space)
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"KEYBOARD_OPERATION","params":{"key":"enter"}}'
-```
-
-### Swipe (fire-and-forget)
-
-**SLIDE_PAGE** - Swipe with precise coordinates
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"SLIDE_PAGE","params":{"direction":"up","start_x":500,"start_y":750,"end_x":500,"end_y":300}}'
-```
-- `direction`: up/down/left/right (required)
-- Coordinates are optional; if omitted, uses default swipe for that direction
-
-### Wait (fire-and-forget)
-
-**WAIT_TIME** - Wait for milliseconds
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"WAIT_TIME","params":{"wait_time":3000}}'
-```
-
-**WAIT_FOR_SELECTOR** - Wait for element to appear
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"WAIT_FOR_SELECTOR","params":{"text":"Loading complete","timeout":10000}}'
-```
-
-### Task Control (fire-and-forget)
-
-**END_TASK** - Mark task complete
-```bash
-JSON='{"task_type":"ai","action":"execute","task_id":"ID","md5":"MD5","action_name":"END_TASK","params":{"success":true,"message":"Done"}}'
-```
-
-## Helper Script
-
-Use the helper script `scripts/send_command.sh` for easier command sending:
+Commands are sent as Base64-encoded JSON via ADB broadcast. The helper script `scripts/send_command.sh` handles this automatically:
 
 ```bash
 # Usage: scripts/send_command.sh <DEVICE_ID> <ACTION_JSON>
 scripts/send_command.sh 192.168.1.100:5555 '{"action_name":"CLICK_ELEMENT","params":{"text":"Login"}}'
 ```
 
+The script builds the full payload (task_type, task_id, md5, etc.), Base64-encodes it, and sends via:
+```bash
+adb -s <DEVICE_ID> shell am broadcast -a com.duoplus.service.PROCESS_DATA --es message "<BASE64>"
+```
+
 ## Typical Workflow
 
 ```
-0. check_env.sh <DEVICE>  → Verify device is a supported DuoPlus cloud phone (v2.0.0+)
-1. get_ui_state            → Observe current screen (get UI elements + screenshot)
-2. Execute action          → e.g. CLICK_ELEMENT, INPUT_CONTENT, SLIDE_PAGE
-3. sleep 1-3s              → Wait for the action to take effect
-4. get_ui_state            → Verify the result, decide next step
-5. Repeat 2-4 until done
-6. END_TASK                → Mark task complete
+1. Analyze UI    → uiautomator dump to find elements, or screenshot for visual analysis
+2. Execute action → send_command.sh with the appropriate action JSON
+3. Wait 1-3s     → Let the action take effect
+4. Verify        → Screenshot + cwebp compress, or uiautomator dump again
+5. Repeat 2-4 until all requested steps are completed
 ```
 
-## Best Practices
-
-1. Always call `get_ui_state` first to understand the current screen before any action
-2. After every action, call `get_ui_state` again to verify the result — action commands have no return value
-3. Use CLICK_ELEMENT (by text) when possible; fall back to CLICK_COORDINATE for web content or when text matching fails
-4. After typing, use KEYBOARD_OPERATION(key="enter") to submit
-5. Wait 1-3 seconds after operations that trigger page transitions before calling get_ui_state
-6. If element not visible, use SLIDE_PAGE to scroll (max 3 attempts)
-7. Coordinates use 0-1000 relative system, not pixels
-8. Do NOT use PAGE_SCREENSHOT separately — use `get_ui_state` instead, which already includes a compressed screenshot in the response
+## Tips
+- **Coordinates**: The coordinate system is 0-1000 relative (top-left=0,0, bottom-right=1000,1000), NOT pixels.
+- **Element matching**: Use CLICK_ELEMENT (by text) when possible; fall back to CLICK_COORDINATE when text matching fails.
+- **Input**: Must tap the input field first (CLICK_COORDINATE or CLICK_ELEMENT) to focus, then INPUT_CONTENT.
+- **Submit**: After typing, use KEYBOARD_OPERATION(key="enter") to submit.
+- **Wait**: Use `sleep 1-3` between commands to allow the UI to update. Do NOT use shell sleep on the device.
+- **Swipe coordinates**: Must use irregular integers, avoid round numbers (500, 800). Vary coordinates between consecutive swipes.
