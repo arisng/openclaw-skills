@@ -1,11 +1,17 @@
 {
   "owner": "alirezarezvani",
   "slug": "site-architecture",
-  "displayName": "Site Architecture",
+  "displayName": "site-architecture",
   "latest": {
-    "version": "2.1.1",
-    "publishedAt": 1773111826943,
-    "commit": "https://github.com/openclaw/skills/commit/bf2815b0c313e30ceb898b81e9ed4231d8cd2f94"
+    "version": "1.0.0",
+    "publishedAt": 1773242675206,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.1",
+      "publishedAt": 1773111826943,
+      "commit": "https://github.com/openclaw/skills/commit/bf2815b0c313e30ceb898b81e9ed4231d8cd2f94"
+    }
+  ]
 }
