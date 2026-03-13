@@ -1,11 +1,17 @@
 {
   "owner": "alirezarezvani",
   "slug": "cs-social-content",
-  "displayName": "Social Content",
+  "displayName": "social-content",
   "latest": {
-    "version": "2.1.2",
-    "publishedAt": 1773170286711,
-    "commit": "https://github.com/openclaw/skills/commit/502a836e9d9c0579f8f530fcd3dd6e6be50eb1a9"
+    "version": "1.0.0",
+    "publishedAt": 1773244263166,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.2",
+      "publishedAt": 1773170286711,
+      "commit": "https://github.com/openclaw/skills/commit/502a836e9d9c0579f8f530fcd3dd6e6be50eb1a9"
+    }
+  ]
 }
