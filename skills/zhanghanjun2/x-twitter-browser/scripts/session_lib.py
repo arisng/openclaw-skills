@@ -10,27 +10,20 @@ from urllib.parse import unquote
 
 
 DEFAULT_COOKIE_DOMAIN = ".x.com"
-DEFAULT_RUNTIME_DIR = Path.home() / ".openclaw" / "workspace" / "skills" / "x-twitter-browser" / "runtime"
-FALLBACK_RUNTIME_DIR = Path(__file__).resolve().parent.parent / "runtime"
+CONFIG_DIR = Path.home() / ".x-twitter-browser"
+CONFIG_PATH = CONFIG_DIR / "config.json"
 
 
-def resolve_runtime_dir(explicit: str | None = None) -> Path:
-    if explicit:
-        path = Path(explicit).expanduser()
-    elif DEFAULT_RUNTIME_DIR.parent.exists():
-        path = DEFAULT_RUNTIME_DIR
-    else:
-        path = FALLBACK_RUNTIME_DIR
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+def load_config() -> dict[str, Any]:
+    if not CONFIG_PATH.exists():
+        return {}
+    return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 
 
-def runtime_cookie_file(runtime_dir: Path) -> Path:
-    return runtime_dir / "cookie-header.txt"
-
-
-def runtime_state_file(runtime_dir: Path) -> Path:
-    return runtime_dir / "storage-state.json"
+def save_config(config: dict[str, Any]) -> Path:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    CONFIG_PATH.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return CONFIG_PATH
 
 
 def parse_cookie_header(cookie_header: str) -> dict[str, str]:
@@ -89,36 +82,23 @@ def cookie_header_to_storage_state(
     }
 
 
-def load_cookie_header(cookie_header: str | None, cookie_file: str | None, runtime_dir: Path) -> str:
+def load_cookie_header(cookie_header: str | None, cookie_file: str | None) -> str:
     if cookie_header:
         return cookie_header.strip()
     if cookie_file:
         return Path(cookie_file).expanduser().read_text(encoding="utf-8").strip()
-    runtime_path = runtime_cookie_file(runtime_dir)
-    if runtime_path.exists():
-        return runtime_path.read_text(encoding="utf-8").strip()
-    raise FileNotFoundError("No cookie header provided and no runtime cookie-header.txt found")
+    config = load_config()
+    if config.get("cookie_header"):
+        return config["cookie_header"].strip()
+    raise FileNotFoundError(
+        "No cookie header provided. Save one with save_cookie_header.py or set cookie_header in ~/.x-twitter-browser/config.json"
+    )
 
 
-def load_storage_state(storage_state: str | None, runtime_dir: Path) -> str:
-    if storage_state:
-        return str(Path(storage_state).expanduser())
-    runtime_path = runtime_state_file(runtime_dir)
-    if runtime_path.exists():
-        return str(runtime_path)
-    raise FileNotFoundError("No storage state provided and no runtime storage-state.json found")
-
-
-def write_cookie_header(runtime_dir: Path, cookie_header: str) -> Path:
-    path = runtime_cookie_file(runtime_dir)
-    path.write_text(cookie_header.strip() + "\n", encoding="utf-8")
-    return path
-
-
-def write_storage_state(runtime_dir: Path, storage_state: dict[str, Any]) -> Path:
-    path = runtime_state_file(runtime_dir)
-    path.write_text(json.dumps(storage_state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return path
+def save_cookie_to_config(cookie_header: str) -> Path:
+    config = load_config()
+    config["cookie_header"] = cookie_header.strip()
+    return save_config(config)
 
 
 def require_playwright() -> Any:

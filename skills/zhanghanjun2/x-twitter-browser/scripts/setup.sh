@@ -25,11 +25,6 @@ else
 fi
 
 echo ""
-echo "Creating runtime directory..."
-mkdir -p runtime
-echo "✓ Runtime directory ready."
-
-echo ""
 echo "Setup complete. If Chromium fails to start later, run:"
 echo "  python3 -m playwright install-deps chromium"
 echo ""

@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
-from pathlib import Path
 from typing import Any
 
 from session_lib import (
@@ -15,23 +15,30 @@ from session_lib import (
 
 
 HOME_URL = "https://x.com/home"
-COMPOSE_URL = "https://x.com/compose/post"
 LOGIN_HINTS = (
     "/i/flow/login",
     "/login",
     "/account/access",
     "/account/login_challenge",
 )
-EDITOR_SELECTOR = '[data-testid="tweetTextarea_0"]'
-POST_BUTTON_SELECTOR = '[data-testid="tweetButton"]'
+
+
+def extract_tweet_id(url_or_id: str) -> str:
+    s = url_or_id.strip()
+    match = re.search(r"/status/(\d+)", s)
+    if match:
+        return match.group(1)
+    if s.isdigit():
+        return s
+    raise ValueError(f"Cannot extract tweet ID from: {url_or_id}")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Post to X with Playwright browser auth")
+    parser = argparse.ArgumentParser(description="Bookmark or remove bookmark from an X tweet with Playwright browser auth")
+    parser.add_argument("--tweet", required=True, help="Tweet URL (e.g. https://x.com/user/status/123) or tweet ID")
+    parser.add_argument("--undo", action="store_true", help="Remove bookmark instead of adding")
     parser.add_argument("--cookie-header", help="Raw Cookie header string")
     parser.add_argument("--cookie-file", help="File containing raw Cookie header string")
-    parser.add_argument("--text", help="Tweet text")
-    parser.add_argument("--text-file", help="Read tweet text from file")
     parser.add_argument("--verify-only", action="store_true", help="Only verify the session")
     parser.add_argument("--timeout-ms", type=int, default=30000, help="Timeout per operation in ms (default: 30000)")
     parser.add_argument(
@@ -41,14 +48,6 @@ def parse_args() -> argparse.Namespace:
         help="Run Chromium headless (default: False). Use --headless for headless mode.",
     )
     return parser.parse_args()
-
-
-def load_text(args: argparse.Namespace) -> str:
-    if args.text:
-        return args.text
-    if args.text_file:
-        return Path(args.text_file).read_text(encoding="utf-8").strip()
-    return ""
 
 
 def resolve_storage_state(args: argparse.Namespace) -> dict[str, Any]:
@@ -74,43 +73,30 @@ def verify_session(page: Any, timeout_ms: int) -> None:
         raise RuntimeError("Imported session is not authenticated")
 
 
-def open_compose(page: Any, timeout_ms: int) -> None:
-    page.goto(COMPOSE_URL, wait_until="domcontentloaded", timeout=timeout_ms)
+def open_tweet_and_bookmark(page: Any, tweet_url: str, tweet_id: str, undo: bool, timeout_ms: int) -> None:
+    if "/status/" in tweet_url:
+        page.goto(tweet_url, wait_until="domcontentloaded", timeout=timeout_ms)
+    else:
+        page.goto(f"https://x.com/i/status/{tweet_id}", wait_until="domcontentloaded", timeout=timeout_ms)
+    page.wait_for_timeout(3000)
 
-
-def post_text(page: Any, text: str, timeout_ms: int) -> None:
-    editor = page.locator(EDITOR_SELECTOR).nth(0)
-    editor.wait_for(state="visible", timeout=timeout_ms)
-    editor.click()
-    # Use press_sequentially instead of fill() so # and @ trigger autocomplete
-    # correctly; fill() inserts all at once and can leave dropdown stuck.
-    editor.press_sequentially(text, delay=60)
-    page.wait_for_timeout(300)
-    # Only press Escape when #/@ may have opened a dropdown; otherwise Escape
-    # closes the compose window and triggers "Save post?" draft popup.
-    if "#" in text or "@" in text:
-        page.keyboard.press("Escape")
-        page.wait_for_timeout(500)
-
-    button = page.locator(POST_BUTTON_SELECTOR).first
-    page.wait_for_function(
-        """
-        selector => {
-          const element = document.querySelector(selector);
-          return !!element && element.getAttribute('aria-disabled') !== 'true' && !element.disabled;
-        }
-        """,
-        arg=POST_BUTTON_SELECTOR,
-        timeout=timeout_ms,
-    )
-    button.click()
+    if undo:
+        btn = page.locator(
+            '[data-testid="removeBookmark"], [aria-label="Remove bookmark"]'
+        ).or_(page.get_by_text("Remove post from Bookmarks")).first
+    else:
+        btn = page.locator(
+            '[data-testid="bookmark"], [aria-label="Add bookmark"], [aria-label="Bookmark"]'
+        ).or_(page.get_by_text("Add post to Bookmarks")).first
+    btn.wait_for(state="visible", timeout=timeout_ms)
+    btn.scroll_into_view_if_needed()
+    btn.click()
 
 
 def main() -> None:
     args = parse_args()
-    text = load_text(args)
-    if not args.verify_only and not text:
-        raise SystemExit("Provide --text or --text-file unless using --verify-only")
+    tweet_input = args.tweet.strip()
+    tweet_id = extract_tweet_id(tweet_input)
 
     storage_state = resolve_storage_state(args)
 
@@ -124,7 +110,7 @@ def main() -> None:
         "--disable-gpu",
         "--disable-software-rasterizer",
         "--disable-setuid-sandbox",
-       # "--disable-extensions",
+        "--disable-extensions",
         "--disable-background-networking",
         "--disable-default-apps",
         "--disable-sync",
@@ -169,10 +155,11 @@ def main() -> None:
             if args.verify_only:
                 return
 
-            open_compose(page, args.timeout_ms)
-            post_text(page, text, args.timeout_ms)
-            page.wait_for_timeout(5000)
-            print("Post flow executed. Check the timeline to confirm delivery.")
+            tweet_url = tweet_input if "/status/" in tweet_input else f"https://x.com/i/status/{tweet_id}"
+            open_tweet_and_bookmark(page, tweet_url, tweet_id, args.undo, args.timeout_ms)
+            page.wait_for_timeout(2000)
+            action = "Remove bookmark" if args.undo else "Bookmark"
+            print(f"{action} flow executed. Check the tweet or Bookmarks to confirm.")
         finally:
             context.close()
             browser.close()
