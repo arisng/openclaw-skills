@@ -1,11 +1,17 @@
 {
   "owner": "alirezarezvani",
   "slug": "saas-metrics-coach",
-  "displayName": "Saas Metrics Coach",
+  "displayName": "saas-metrics-coach",
   "latest": {
-    "version": "2.1.1",
-    "publishedAt": 1773203026480,
-    "commit": "https://github.com/openclaw/skills/commit/b297170eda1e3d6c29dc64eadf82f9e9bede7ae7"
+    "version": "1.0.0",
+    "publishedAt": 1773243861101,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.1",
+      "publishedAt": 1773203026480,
+      "commit": "https://github.com/openclaw/skills/commit/b297170eda1e3d6c29dc64eadf82f9e9bede7ae7"
+    }
+  ]
 }
