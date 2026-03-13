@@ -17,6 +17,7 @@ Commands:
 """
 
 import json
+import os
 import sys
 import urllib.request
 from datetime import date, timedelta
@@ -31,8 +32,11 @@ TOUR = "main"  # Main tour
 
 
 def load_config() -> dict:
+    env_key = os.environ.get("SNOOKER_API_KEY")
+    if env_key:
+        return {"apiKey": env_key}
     if not CONFIG_FILE.exists():
-        print("Snooker API not configured. Run: snooker.py setup --api-key YOUR_KEY")
+        print("Snooker API not configured. Set SNOOKER_API_KEY or run: snooker.py setup --api-key YOUR_KEY")
         print("Get a key by emailing webmaster@snooker.org")
         sys.exit(1)
     return json.loads(CONFIG_FILE.read_text())
