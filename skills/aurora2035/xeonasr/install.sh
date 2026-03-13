@@ -1,177 +1,404 @@
 #!/bin/bash
 
-# Xeon ASR Skill 安装脚本
-# 自动创建环境、安装依赖、配置服务
+# Xeon ASR Skill 环境准备脚本（setup_env.sh）
+# 支持 Ubuntu/Debian/CentOS/RHEL/AlibabaCloud/Rocky/AlmaLinux
+# 默认使用 Miniconda（预编译 Python 3.10，无需编译）
 
-set -e
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
+
+# 参数解析
+MODEL_PATH=""
+FORCE=0
+SKIP_DEPS=0
+
+usage() {
+    cat << EOF
+Xeon ASR Skill 环境准备脚本
+
+用法: $0 [选项]
+
+选项:
+  --model-path PATH    指定 Qwen3-ASR 模型绝对路径（强烈建议）
+  --force              强制重新生成虚拟环境
+  --skip-deps          跳过系统依赖安装
+  -h, --help           显示此帮助
+
+示例:
+  $0 --model-path /root/models/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO
+  $0 --force --model-path /opt/models/asr
+EOF
+    exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --model-path) MODEL_PATH="$2"; shift 2 ;;
+        --force) FORCE=1; shift ;;
+        --skip-deps) SKIP_DEPS=1; shift ;;
+        -h|--help) usage ;;
+        *) log_error "未知参数: $1"; usage ;;
+    esac
+done
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SKILL_DIR"
 
 echo "========================================"
-echo "  Xeon ASR Skill 安装脚本"
+echo "  Xeon ASR Skill 环境准备"
 echo "========================================"
 echo ""
 
-# 步骤 1：检查 Python 3.10
-echo "📦 步骤 1/6: 检查 Python 3.10..."
-if command -v python3.10 &> /dev/null; then
-    PYTHON_CMD="python3.10"
-    echo "✓ Python 3.10 已安装"
-elif command -v python3 &> /dev/null; then
-    PYTHON_VERSION=$(python3 --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
-    if [[ "$PYTHON_VERSION" == "3.10"* ]]; then
-        PYTHON_CMD="python3"
-        echo "✓ Python 3.10 已安装"
+detect_os() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        echo "$ID"
+    elif [ -f /etc/redhat-release ]; then
+        echo "centos"
     else
-        echo "⚠ 未找到 Python 3.10，当前 Python 版本：$PYTHON_VERSION"
-        echo "  建议安装 Python 3.10: sudo apt install python3.10 python3.10-venv"
-        exit 1
+        echo "unknown"
     fi
-else
-    echo "✗ 未找到 Python 3.10"
-    echo "  请安装：sudo apt install python3.10 python3.10-venv"
-    exit 1
-fi
+}
 
-# 步骤 2：创建虚拟环境
-echo ""
-echo "📦 步骤 2/6: 创建 Python 虚拟环境..."
-if [ -d "venv" ]; then
-    echo "✓ 虚拟环境已存在，跳过创建"
-else
-    $PYTHON_CMD -m venv venv
-    echo "✓ 虚拟环境创建完成"
-fi
-source venv/bin/activate
+OS=$(detect_os)
+log_info "检测到操作系统: $OS"
 
-# 步骤 3：安装 xdp-audio-service
-echo ""
-echo "📦 步骤 3/6: 安装 xdp-audio-service..."
-pip install --upgrade pip
-pip install xdp-audio-service==0.1.1
-echo "✓ xdp-audio-service 安装完成"
-
-# 步骤 4：生成配置文件
-echo ""
-echo "📦 步骤 4/6: 生成 ASR 配置文件..."
-if [ -f "audio_config.json" ]; then
-    echo "⚠ audio_config.json 已存在"
-    read -p "是否覆盖？(y/N): " overwrite
-    if [[ "$overwrite" == "y" || "$overwrite" == "Y" ]]; then
-        xdp-asr-init-config --output ./audio_config.json
-        echo "✓ 配置文件已重新生成"
+check_sudo() {
+    if [ "$EUID" -eq 0 ]; then
+        SUDO=""
+    elif command -v sudo &> /dev/null; then
+        SUDO="sudo"
     else
-        echo "✓ 保留现有配置文件"
+        log_warn "没有 sudo 权限，且不是 root 用户"
+        SUDO=""
     fi
-else
-    xdp-asr-init-config --output ./audio_config.json
-    echo "✓ 配置文件生成完成"
-fi
+}
 
-# 步骤 5：配置模型路径
-echo ""
-echo "📦 步骤 5/6: 配置模型路径..."
-echo ""
-echo "请输入 Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO 模型的路径"
-echo "示例：/root/models/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO"
-read -p "模型路径：" MODEL_PATH
+install_system_deps() {
+    if [ "$SKIP_DEPS" -eq 1 ]; then
+        log_info "跳过系统依赖安装"
+        return 0
+    fi
 
-if [ -d "$MODEL_PATH" ]; then
-    echo "✓ 模型目录存在"
+    check_sudo
+
+    case $OS in
+        ubuntu|debian)
+            install_deps_debian
+            ;;
+        centos|rhel|fedora|rocky|almalinux|ol|alibabacloud|alios)
+            install_deps_redhat
+            ;;
+        *)
+            log_warn "未知系统 $OS，继续尝试 Miniconda 安装"
+            ;;
+    esac
+}
+
+install_deps_debian() {
+    log_step "安装系统依赖 (Debian/Ubuntu)..."
+    $SUDO apt-get update -qq
+    $SUDO apt-get install -y -qq wget curl git lsof net-tools unzip bzip2 ca-certificates || \
+    $SUDO apt-get install -y wget curl git lsof net-tools unzip bzip2 ca-certificates
+}
+
+install_deps_redhat() {
+    log_step "安装系统依赖 (RHEL/CentOS/AlibabaCloud)..."
     
-    # 使用 Node.js 或 Python 修改 JSON
-    if command -v node &> /dev/null; then
-        node -e "
-const fs = require('fs');
-const config = JSON.parse(fs.readFileSync('./audio_config.json', 'utf8'));
-config.qwen3_asr_ov.model = '$MODEL_PATH';
-fs.writeFileSync('./audio_config.json', JSON.stringify(config, null, 2));
-console.log('✓ 配置文件已更新');
-"
+    if command -v dnf &> /dev/null; then
+        PKG_MGR="dnf"
+        $SUDO dnf install -y -q epel-release 2>/dev/null || true
     else
-        python3 -c "
-import json
-with open('./audio_config.json', 'r') as f:
-    config = json.load(f)
-config['qwen3_asr_ov']['model'] = '$MODEL_PATH'
-with open('./audio_config.json', 'w') as f:
-    json.dump(config, f, indent=2)
-print('✓ 配置文件已更新')
-"
+        PKG_MGR="yum"
+        $SUDO yum install -y -q epel-release 2>/dev/null || true
     fi
-else
-    echo "⚠ 模型目录不存在：$MODEL_PATH"
-    echo "  请确认路径正确，或稍后手动修改 audio_config.json"
-fi
-
-# 步骤 6：检查并配置 QQ Bot
-echo ""
-echo "📦 步骤 6/6: 检查 QQ Bot 配置..."
-OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
-
-if [ -f "$OPENCLAW_CONFIG" ]; then
-    echo "✓ 发现 OpenClaw 配置文件"
     
-    # 检查是否已配置 qqbot
-    HAS_QQBOT=$(grep -c '"qqbot"' "$OPENCLAW_CONFIG" || true)
-    if [ "$HAS_QQBOT" -gt 0 ]; then
-        echo "✓ QQ Bot 已配置"
+    # Alibaba Cloud 3 特殊处理
+    if [[ "$OS" == "alibabacloud" ]] || [[ "$OS" == "alios" ]]; then
+        log_info "检测到 Alibaba Cloud，安装额外依赖..."
+        $SUDO $PKG_MGR install -y -q openssl11 openssl11-devel 2>/dev/null || true
+    fi
+    
+    $SUDO $PKG_MGR install -y -q wget curl git lsof net-tools unzip bzip2 ca-certificates \
+        which || \
+    $SUDO $PKG_MGR install -y wget curl git lsof net-tools unzip bzip2 ca-certificates \
+        which
+}
+
+# 使用 Miniconda 安装 Python 3.10（无需编译，100%成功）
+setup_miniconda() {
+    log_step "使用 Miniconda 部署 Python 3.10..."
+    
+    local CONDA_DIR="$HOME/miniconda3"
+    local CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py310_23.11.0-2-Linux-x86_64.sh"
+    
+    if [ -d "$CONDA_DIR" ] && [ "$FORCE" -eq 0 ]; then
+        log_info "Miniconda 已存在，跳过安装"
+    else
+        if [ "$FORCE" -eq 1 ] && [ -d "$CONDA_DIR" ]; then
+            log_info "强制模式：删除旧 Miniconda"
+            rm -rf "$CONDA_DIR"
+        fi
         
-        # 询问是否配置 STT
-        echo ""
-        read -p "是否配置语音转文字 (STT)？(Y/n): " config_stt
-        if [[ "$config_stt" != "n" && "$config_stt" != "N" ]]; then
-            # 备份配置文件
-            cp "$OPENCLAW_CONFIG" "$OPENCLAW_CONFIG.bak.$(date +%Y%m%d%H%M%S)"
-            
-            # 使用 Node.js 修改配置
-            if command -v node &> /dev/null; then
-                node -e "
-const fs = require('fs');
-const config = JSON.parse(fs.readFileSync('$OPENCLAW_CONFIG', 'utf8'));
-
-if (!config.channels) config.channels = {};
-if (!config.channels.qqbot) config.channels.qqbot = {};
-
-config.channels.qqbot.stt = {
-  enabled: true,
-  provider: 'custom',
-  baseUrl: 'http://127.0.0.1:9001',
-  model: 'Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO',
-  apiKey: 'not-needed'
-};
-
-fs.writeFileSync('$OPENCLAW_CONFIG', JSON.stringify(config, null, 2));
-console.log('✓ STT 配置已添加到 openclaw.json');
-console.log('⚠ 请重启 OpenClaw Gateway: openclaw gateway restart');
-"
+        log_info "下载 Miniconda..."
+        if ! wget --timeout=120 -q "$CONDA_URL" -O /tmp/miniconda.sh; then
+            log_error "下载 Miniconda 失败，尝试使用 curl..."
+            if ! curl -fsSL --connect-timeout 120 "$CONDA_URL" -o /tmp/miniconda.sh; then
+                log_error "下载 Miniconda 失败，请检查网络"
+                exit 1
             fi
         fi
-    else
-        echo "⚠ QQ Bot 未配置"
-        echo "  请先在 OpenClaw 中配置 QQ Bot"
-        echo "  运行：openclaw configure channels add qqbot"
+        
+        log_info "安装 Miniconda（约 30 秒）..."
+        bash /tmp/miniconda.sh -b -p "$CONDA_DIR" >/dev/null 2>&1 || {
+            log_error "Miniconda 安装失败"
+            rm -f /tmp/miniconda.sh
+            exit 1
+        }
+        rm -f /tmp/miniconda.sh
+        log_info "Miniconda 安装完成"
     fi
-else
-    echo "⚠ 未找到 OpenClaw 配置文件：$OPENCLAW_CONFIG"
-    echo "  请先安装并配置 OpenClaw"
-fi
+    
+    # 设置路径
+    export PATH="$CONDA_DIR/bin:$PATH"
+    
+    # 初始化 conda（用于当前 shell）
+    if [ -f "$CONDA_DIR/etc/profile.d/conda.sh" ]; then
+        source "$CONDA_DIR/etc/profile.d/conda.sh" 2>/dev/null || true
+    fi
+    
+    # 验证
+    if [ ! -f "$CONDA_DIR/bin/python" ]; then
+        log_error "Miniconda 安装验证失败"
+        exit 1
+    fi
+    
+    local PY_VERSION=$("$CONDA_DIR/bin/python" --version 2>&1)
+    log_info "Python 就绪: $PY_VERSION"
+    
+    PYTHON_CMD="$CONDA_DIR/bin/python"
+}
 
-# 完成
-echo ""
-echo "========================================"
-echo "  安装完成！"
-echo "========================================"
-echo ""
-echo "下一步操作："
-echo "1. 启动 ASR Skill 服务："
-echo "   cd $SKILL_DIR"
-echo "   npm install"
-echo "   npm start"
-echo ""
-echo "2. 重启 OpenClaw Gateway（如果已配置 STT）："
-echo "   openclaw gateway restart"
-echo ""
-echo "3. 发送语音消息测试"
-echo ""
+setup_venv() {
+    if [ "$FORCE" -eq 1 ] && [ -d "venv" ]; then
+        log_info "强制模式：删除旧虚拟环境"
+        rm -rf venv
+    fi
+    
+    if [ ! -d "venv" ]; then
+        log_step "创建 Python 虚拟环境..."
+        "$PYTHON_CMD" -m venv venv || {
+            log_error "创建虚拟环境失败"
+            exit 1
+        }
+    fi
+    
+    source venv/bin/activate
+    pip install -q --upgrade pip
+    log_info "虚拟环境就绪"
+}
+
+install_python_packages() {
+    log_step "安装 xdp-audio-service..."
+    pip install -q xdp-audio-service || {
+        log_error "安装 xdp-audio-service 失败"
+        log_info "尝试不使用缓存重新安装..."
+        pip install --no-cache-dir xdp-audio-service || {
+            exit 1
+        }
+    }
+    log_info "xdp-audio-service 安装完成"
+}
+
+generate_config() {
+    if [ -f "audio_config.json" ] && [ "$FORCE" -ne 1 ]; then
+        log_info "配置文件已存在，跳过生成（使用 --force 覆盖）"
+        return 0
+    fi
+    
+    log_step "生成 ASR 配置文件..."
+    
+    if command -v xdp-asr-init-config &> /dev/null; then
+        xdp-asr-init-config --output ./audio_config.json || create_default_config
+    else
+        create_default_config
+    fi
+}
+
+create_default_config() {
+    cat > audio_config.json << 'EOF'
+{
+  "qwen3_asr_ov": {
+    "model": "/path/to/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO",
+    "device": "CPU",
+    "sample_rate": 16000,
+    "language": "zh",
+    "max_tokens": 256
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 5001
+  }
+}
+EOF
+    log_info "已生成默认配置文件"
+}
+
+update_model_path() {
+    if [ -z "$MODEL_PATH" ]; then
+        log_warn "未指定 --model-path，请稍后手动修改 audio_config.json"
+        return 0
+    fi
+    
+    if [ ! -d "$MODEL_PATH" ]; then
+        log_warn "模型目录不存在: $MODEL_PATH，请检查路径"
+        return 0
+    fi
+    
+    log_step "配置模型路径: $MODEL_PATH"
+    
+    python3 << PYEOF
+import json
+import sys
+
+try:
+    with open('./audio_config.json', 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    if 'qwen3_asr_ov' not in config:
+        config['qwen3_asr_ov'] = {}
+    
+    config['qwen3_asr_ov']['model'] = '$MODEL_PATH'
+    
+    with open('./audio_config.json', 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+    
+    print("✓ 模型路径已更新")
+except Exception as e:
+    print(f"✗ 更新失败: {e}")
+    sys.exit(1)
+PYEOF
+}
+
+setup_openclaw() {
+    local OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
+    
+    if [ ! -f "$OPENCLAW_CONFIG" ]; then
+        log_warn "未找到 OpenClaw 配置，跳过"
+        return 0
+    fi
+    
+    log_step "配置 OpenClaw..."
+    
+    if ! python3 -c "
+import json
+with open('$OPENCLAW_CONFIG', 'r') as f:
+    c = json.load(f)
+exit(0 if 'channels' in c and 'qqbot' in c['channels'] else 1)
+" 2>/dev/null; then
+        log_warn "OpenClaw 未配置 qqbot，跳过 STT 配置"
+        return 0
+    fi
+    
+    cp "$OPENCLAW_CONFIG" "$OPENCLAW_CONFIG.bak.$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
+    
+    python3 << PYEOF
+import json
+import sys
+
+try:
+    with open('$OPENCLAW_CONFIG', 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    if 'channels' not in config:
+        config['channels'] = {}
+    if 'qqbot' not in config['channels']:
+        config['channels']['qqbot'] = {}
+    
+    config['channels']['qqbot']['stt'] = {
+        "enabled": True,
+        "provider": "custom",
+        "baseUrl": "http://127.0.0.1:5001",
+        "model": "Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO",
+        "apiKey": "not-needed"
+    }
+    
+    with open('$OPENCLAW_CONFIG', 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+    
+    print("✓ STT 配置已更新")
+    print("  请启动服务后运行: openclaw gateway restart")
+except Exception as e:
+    print(f"✗ 配置失败: {e}")
+PYEOF
+}
+
+ensure_scripts_executable() {
+    if [ -f "$SKILL_DIR/start_asr.sh" ]; then
+        chmod +x "$SKILL_DIR/start_asr.sh"
+        log_info "start_asr.sh 已设为可执行"
+    fi
+    
+    if [ -f "$SKILL_DIR/stop_asr.sh" ]; then
+        chmod +x "$SKILL_DIR/stop_asr.sh"
+        log_info "stop_asr.sh 已设为可执行"
+    fi
+}
+
+show_completion() {
+    echo ""
+    echo "========================================"
+    echo "  环境准备完成！"
+    echo "========================================"
+    echo ""
+    
+    if [ -z "$MODEL_PATH" ]; then
+        echo -e "${YELLOW}⚠ 尚未配置模型路径${NC}"
+        echo "请编辑配置文件："
+        echo "  $SKILL_DIR/audio_config.json"
+        echo "或重新运行："
+        echo "  ./setup_env.sh --model-path /path/to/model"
+        echo ""
+    else
+        echo -e "${GREEN}✓ 模型路径已配置${NC}"
+    fi
+    
+    echo -e "${BLUE}【服务管理命令】${NC}"
+    echo "  启动 Flask ASR:  ./start_asr.sh"
+    echo "  停止 Flask ASR:  ./stop_asr.sh"
+    echo "  查看状态:        ./stop_asr.sh status"
+    echo ""
+    echo "  日志文件:        tail -f $SKILL_DIR/asr.log"
+    echo ""
+    
+    if command -v openclaw &> /dev/null; then
+        echo -e "${BLUE}【OpenClaw 集成】${NC}"
+        echo "  启动 Skill:      npm start"
+        echo "  重启 Gateway:    openclaw gateway restart"
+        echo ""
+    fi
+}
+
+main() {
+    install_system_deps
+    setup_miniconda  # 直接使用 Miniconda，不再尝试 pyenv 或系统 Python
+    setup_venv
+    install_python_packages
+    generate_config
+    update_model_path
+    setup_openclaw
+    ensure_scripts_executable
+    show_completion
+}
+
+main

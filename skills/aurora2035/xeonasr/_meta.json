@@ -3,9 +3,15 @@
   "slug": "xeonasr",
   "displayName": "xeon_asr",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773188196811,
-    "commit": "https://github.com/openclaw/skills/commit/baeaca8b57c389acab23e92df290caed017710b1"
+    "version": "1.0.6",
+    "publishedAt": 1773298368897,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773188196811,
+      "commit": "https://github.com/openclaw/skills/commit/baeaca8b57c389acab23e92df290caed017710b1"
+    }
+  ]
 }

@@ -1,77 +1,106 @@
 # Xeon ASR
 
-🎤 基于 OpenVINO Qwen3-ASR 模型的本地语音转文字技能。集成 xdp-audio-service，一键安装自动配置。
+🎤 基于 OpenVINO Qwen3-ASR 模型的本地语音转文字技能，为 OpenClaw/QQBot 提供本地语音识别能力。
 
-## 快速安装
+## 架构
 
-```bash
-# 从 ClawHub 安装
-clawhub install xeon-asr
-cd xeon-asr
+双服务架构（自动运行）：
 
-# 运行一键安装脚本
-bash install.sh
-```
+| 服务 | 端口 | 作用 |
+|------|------|------|
+| Flask ASR | 5001 | 加载 Qwen3-ASR 模型，执行本地推理 |
+| ASR Skill | 9001 | 接收 QQ 语音消息，调用 5001 推理 |
 
-安装脚本会自动：
-1. ✅ 检查 Python 3.10
-2. ✅ 创建虚拟环境
-3. ✅ 安装 xdp-audio-service
-4. ✅ 生成配置文件
-5. ✅ 配置模型路径
-6. ✅ 配置 QQ Bot STT
+## 前置要求
 
-## 智能启动
-
-直接运行 `npm start` 时会自动检测配置：
-- 配置完整 → 直接启动服务
-- 配置缺失 → 提示用户确认是否运行安装脚本
-- **不会自动执行安装**，需要用户输入 `y` 确认
-
-## 配置
-
-### 1. 下载 Qwen3-ASR 模型
+**唯一步骤：下载模型**
 
 ```bash
-# 从 HuggingFace 下载
 git lfs install
-git clone https://huggingface.co/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO /root/models/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO
+git clone https://huggingface.co/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO /root/model/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO
 ```
 
-### 2. 启动服务
+## 安装流程
 
-```bash
-# 启动 ASR Skill (9001 端口)
-npm start
+当用户请求安装时，按以下步骤执行：
 
-# 启动 Flask ASR (5001 端口，另一个终端)
-source venv/bin/activate
-npm run start:asr
-```
+1. **从 clawhub 安装**
+   ```bash
+   clawhub install xeonasr
+   ```
 
-### 3. 重启 OpenClaw
+2. **运行环境配置**
+   ```bash
+   cd /root/.openclaw/workspace/skills/xeonasr
+   bash setup_env.sh --model-path /root/model/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO
+   ```
 
-```bash
-openclaw gateway restart
-```
+3. **配置 QQ Bot STT**
+   
+   修改 `~/.openclaw/openclaw.json`，添加或更新：
+   ```json
+   {
+     "channels": {
+       "qqbot": {
+         "stt": {
+           "enabled": true,
+           "provider": "custom",
+           "baseUrl": "http://127.0.0.1:9001",
+           "model": "Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO",
+           "apiKey": "not-needed"
+         }
+       }
+     }
+   }
+   ```
+
+4. **启动服务**
+   ```bash
+   ./start_all.sh
+   ```
+
+5. **重启 gateway**
+   ```bash
+   openclaw gateway restart
+   ```
 
 ## 使用
 
-- QQ 收到语音消息时自动转写
-- 本地运行，无需外部 API
-- 基于 OpenVINO 优化的 Qwen3-ASR-0.6B 模型
+安装完成后，QQ 收到语音消息时自动转写。
+
+## 管理
+
+```bash
+# 进入技能目录
+cd /root/.openclaw/workspace/skills/xeonasr
+
+# 重启服务
+./stop.sh && ./start_all.sh
+
+# 健康检查
+curl http://127.0.0.1:5001/health
+curl http://127.0.0.1:9001/health
+```
+
+## 常见问题
+
+**端口被占用**：`./stop.sh` 后重试
+
+**缺少 chat_template.json**：从模型目录复制到技能目录
+
+**Python 版本问题**：`setup_env.sh` 会自动处理
 
 ## 依赖
 
 - Node.js 18+
 - Python 3.10
 - xdp-audio-service 0.1.0
-- Qwen3-ASR 模型（需下载）
-
-## 文档
-
-详细文档请查看 README.md
+- Qwen3-ASR 模型
 
 ## 许可证
 
-MIT
+MIT License
+
+## 作者
+
+aurora2035
