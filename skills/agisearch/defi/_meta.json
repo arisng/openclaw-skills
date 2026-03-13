@@ -3,9 +3,15 @@
   "slug": "defi",
   "displayName": "DeFi",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773038814746,
-    "commit": "https://github.com/openclaw/skills/commit/3733d6c3e27afc816049965a4e9c23d013f44fc2"
+    "version": "2.0.0",
+    "publishedAt": 1773224074419,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773038814746,
+      "commit": "https://github.com/openclaw/skills/commit/3733d6c3e27afc816049965a4e9c23d013f44fc2"
+    }
+  ]
 }
