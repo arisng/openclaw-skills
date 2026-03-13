@@ -1,53 +1,93 @@
 ---
 name: plusefin-analysis
-description: AI-ready stock analysis - ticker data, options, sentiment, predictions. Get your free API key at https://plusefin.com
+description: AI-ready stock analysis with financial data, options, sentiment, and structured research framework
 metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "📈",
-        "homepage": "https://github.com/plusefin/plusefin-skill",
-        "requires": { "bins": ["python3"], "env": ["PLUSEFIN_API_KEY"] },
-        "primaryEnv": "PLUSEFIN_API_KEY"
-      }
-  }
+  clawdbot:
+    emoji: "📈"
+    homepage: "https://github.com/plusefin/plusefin-skill"
+    requires:
+      env: ["PLUSEFIN_API_KEY"]
+    primaryEnv: "PLUSEFIN_API_KEY"
 ---
 
 # PlusE Financial Analysis
 
-AI-ready financial data. ML-processed so your AI understands it directly.
-
-**Free tier available** - [Get API Key](https://console.plusefin.com)
+AI-ready financial data research skill with structured research methodology.
 
 ## Setup
 
 ```bash
-# Required: Your PlusE API key (get free at https://plusefin.com)
 export PLUSEFIN_API_KEY=your_api_key
+```
+
+## Research Framework
+
+### 1. Research Setup
+- Define target (ticker) and time range (6mo / 1y / 2y)
+- Set research objective: valuation analysis / technical outlook / event-driven
+
+### 2. Data Collection
+- **Company Fundamentals**: `ticker` - overview, valuation, ratings
+- **Market Sentiment**: `sentiment` / `sentiment-history`
+- **Options Data**: `options` / `options-analyze` (IV, Greeks, OI)
+- **Institutional Holdings**: `holders` - major holders changes
+- **Financial Statements**: `statements` (income/balance/cash)
+- **Earnings & Insider**: `earnings` / `insiders`
+- **Price History**: `price-history`
+
+### 3. Hypothesis Formation
+Based on data, formulate hypotheses:
+- **Direction**: Bullish / Bearish / Neutral
+- **Drivers**: Valuation reversion, earnings growth, event catalyst, sentiment reversal
+
+### 4. Evidence Validation
+- Use search capabilities to gather research reports, news, announcements
+- Cross-validate multi-source data timeline consistency
+- Seek evidence supporting or refuting hypotheses
+
+### 5. Valuation Scenarios
+- **Bull Case**: Valuation assuming upside catalysts materialize
+- **Base Case**: Valuation based on current market expectations
+- **Bear Case**: Valuation assuming downside risks materialize
+
+### 6. Risk Assessment
+- Downside risks
+- Key assumption risks
+- Potential catalysts and triggers
+
+### 7. Report Output
+Structured output:
+- Core thesis
+- Evidence summary
+- Valuation scenario comparison
+- Risk warnings
+- Actionable recommendations (if applicable)
+
+Each key conclusion must include source citations.
+
+## Usage
+
+```bash
+# Set API key
+export PLUSEFIN_API_KEY=your_api_key
+
+# Run commands
+python plusefin.py <command> [args]
 ```
 
 ## Commands
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `ticker` | Company overview, valuation, ratings | `python {baseDir}/plusefin.py ticker AAPL` |
-| `price-history` | Historical prices + signals | `python {baseDir}/plusefin.py price-history NVDA 1y` |
-| `statements` | Financial statements | `python {baseDir}/plusefin.py statements AAPL income` |
-| `earnings` | Earnings history | `python {baseDir}/plusefin.py earnings NVDA` |
-| `news` | Stock news | `python {baseDir}/plusefin.py news TSLA` |
-| `options` | Options chain | `python {baseDir}/plusefin.py options TSLA 20` |
-| `options-analyze` | Options analysis | `python {baseDir}/plusefin.py options-analyze AAPL` |
-| `sentiment` | Market Fear & Greed | `python {baseDir}/plusefin.py sentiment` |
-| `sentiment-history` | Historical sentiment | `python {baseDir}/plusefin.py sentiment-history 10` |
-| `prediction` | Price prediction | `python {baseDir}/plusefin.py prediction AAPL` |
-| `fred` | Economic data (GDP, etc.) | `python {baseDir}/plusefin.py fred GDP` |
-| `fred-search` | Search indicators | `python {baseDir}/plusefin.py fred-search unemployment` |
-| `holders` | Institutional holdings | `python {baseDir}/plusefin.py holders SPY` |
-| `insiders` | Insider trading | `python {baseDir}/plusefin.py insiders NVDA` |
-
-## Parameters
-
-- `price-history`: period = `1mo`, `3mo`, `6mo`, `1y`, `2y`, `5y`
-- `options`: num = number of options (default: 20)
-- `statements`: type = `income`, `balance`, `cash`
-- `sentiment-history/trend`: days (default: 10)
+| Command | Usage | Description |
+|---------|-------|-------------|
+| `ticker` | `python plusefin.py ticker <symbol>` | Company overview, valuation, ratings |
+| `price-history` | `python plusefin.py price-history <ticker> [period]` | Historical prices (6mo/1y/2y) |
+| `sentiment` | `python plusefin.py sentiment` | Market sentiment (Fear & Greed) |
+| `sentiment-history` | `python plusefin.py sentiment-history [days]` | Historical sentiment |
+| `options` | `python plusefin.py options <symbol> [num]` | Options chain |
+| `options-analyze` | `python plusefin.py options-analyze <symbol>` | Options analysis |
+| `holders` | `python plusefin.py holders <symbol>` | Institutional holdings |
+| `statements` | `python plusefin.py statements <symbol> [type]` | Financial statements (income/balance/cash) |
+| `earnings` | `python plusefin.py earnings <symbol>` | Earnings history |
+| `insiders` | `python plusefin.py insiders <symbol>` | Insider trading |
+| `news` | `python plusefin.py news <symbol>` | Stock news |
+| `fred` | `python plusefin.py fred <series_id>` | Macroeconomic data |

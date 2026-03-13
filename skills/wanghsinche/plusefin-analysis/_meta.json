@@ -1,13 +1,18 @@
 {
   "owner": "wanghsinche",
   "slug": "plusefin-analysis",
-  "displayName": "PlusE Financial Analysis",
+  "displayName": "Plusefin Analysis",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1772000944743,
-    "commit": "https://github.com/openclaw/skills/commit/51a1672fb3b48c567d677c00482d0e5c7cfb5e27"
+    "version": "1.0.9",
+    "publishedAt": 1773166306627,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1772000944743,
+      "commit": "https://github.com/openclaw/skills/commit/51a1672fb3b48c567d677c00482d0e5c7cfb5e27"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1771994287472,
