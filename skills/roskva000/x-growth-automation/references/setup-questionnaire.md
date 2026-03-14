@@ -52,8 +52,14 @@ Ask only what is still missing.
 - dry-run first
 - Bird for discovery
 - X API for publishing
-- daily range 2-5
-- one reply/day max
+- daily range 2-5 for initial rollout
+- reply automation off by default unless explicitly requested
 - CTA only in dedicated reply automation
 - short-to-medium post length
 - one primary language unless the user explicitly wants multilingual output
+
+## Aggressive profile template (explicit opt-in)
+- daily total: 10
+- structure: 1 news/source crosspost + 1 special crosspost + 8 core
+- reply lane: disabled (unless user explicitly insists)
+- anti-repetition: enable recent-post similarity checks + source de-dup

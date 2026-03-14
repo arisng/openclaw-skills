@@ -1,6 +1,6 @@
 ---
 name: x-growth-automation
-description: Set up a reusable X/Twitter growth automation system with OpenClaw, Bird CLI, X API, optional source branching, optional community CTA, dry-run/live rollout, and niche-specific posting policy. Use when a user wants to build, clone, publish, or customize an autonomous X growth workflow, especially if they ask to install the system from GitHub/ClawHub, configure posting cadence, define niches, add reply automation, localize the system for a specific language, or connect external content feeds into X.
+description: Set up a reusable X/Twitter growth automation system with OpenClaw, Bird CLI, X API, optional source branching, optional community CTA, dry-run/live rollout, anti-repetition controls, and niche-specific posting policy. Use when a user wants to build, clone, publish, or customize an autonomous X growth workflow, especially if they ask to install the system from GitHub/ClawHub, configure cadence (including high-volume modes like 10/day), define niches, add/disable reply automation, localize for a specific language, or connect external editorial feeds into X.
 ---
 
 # X Growth Automation
@@ -36,8 +36,10 @@ A reusable X automation system with these layers:
 - Default new installs to **dry-run**.
 - If the user wants aggressive automation, still keep daily/monthly caps in config.
 - Never silently copy private tokens, links, handles, or niche assumptions from another project.
-- Treat reply automation as a higher-risk lane than normal posts.
+- Treat reply automation as a higher-risk lane than normal posts; disable by default unless explicitly requested.
 - In live mode, require clear logging for posted / skipped / failed outcomes.
+- Use idempotent slot keys that do not depend on mutable draft text (prevent same-source repost loops).
+- Add anti-repetition guardrails (for example last-48h similarity checks + source de-dup).
 
 ## Ask these questions before scaffolding
 
@@ -113,11 +115,13 @@ The JSON may include fields like:
 
 After scaffolding, customize in this order:
 1. `config/publish-policy.json`
-2. `config/topics.json`
-3. `config/budget-policy.json`
-4. `.env.example`
-5. `docs/operator-notes.md`
-6. prompts if the user wants a distinct tone
+2. `config/publish-slots.json` (if slot-based cadence is used)
+3. `config/topics.json`
+4. `config/budget-policy.json`
+5. `config/draft-diversity.json` (or equivalent prompt/diversity controls)
+6. `.env.example`
+7. `docs/operator-notes.md`
+8. prompts if the user wants a distinct tone
 
 ## When to enable live mode
 
@@ -131,11 +135,17 @@ Enable live mode only when all of these are true:
 
 ## Publish strategy guidance
 
-Recommended live structure:
-- 1 daily news/source crosspost if configured
-- 1 daily special content crosspost if configured
-- 0-1 reply/day with optional CTA
-- 0-2 core posts/day from the main drafting pipeline
+Use explicit profiles and encode them in config:
+
+- **Conservative:** 2-5/day, reply lane optional, 0-2 core
+- **Balanced:** 4-7/day, reply lane optional, 2-4 core
+- **High-volume:** 10/day = 1 news crosspost + 1 special crosspost + 8 core posts
+
+If the user chooses high-volume mode:
+- keep monthly cap explicit
+- disable reply lane unless there is a clear reason to keep it
+- enforce anti-repetition guardrails (recent-post similarity + source de-dup)
+- distribute core slots through the day (avoid burst clustering)
 
 If the user wants a different mix, encode it in config rather than burying it in prose.
 

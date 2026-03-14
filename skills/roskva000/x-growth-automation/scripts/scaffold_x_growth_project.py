@@ -103,7 +103,7 @@ def main():
     write(root / ".env.example", ENV_EXAMPLE.replace("XGROWTH_DRY_RUN=true", f"XGROWTH_DRY_RUN={str(not profile.get('live_publish', False)).lower()}").replace("XGROWTH_PUBLISH_ENABLED=false", f"XGROWTH_PUBLISH_ENABLED={str(profile.get('live_publish', False)).lower()}"))
     write(root / "prompts" / "llm-drafting.md", PROMPT)
     write(root / "config" / "style-rules.md", STYLE)
-    write(root / "docs" / "operator-notes.md", "Fill in operator decisions, niche choices, language rules, community integration, rollout notes, and reply-lane safety rules here.\n\nSuggested live-mode notes:\n- preferred reply sources (mentions only vs broader)\n- what counts as a permanent reply failure\n- whether failed replies should skip or fallback\n- where publish results are logged\n")
+    write(root / "docs" / "operator-notes.md", "Fill in operator decisions, niche choices, language rules, community integration, rollout notes, and reply-lane safety rules here.\n\nSuggested live-mode notes:\n- preferred reply sources (mentions only vs broader)\n- what counts as a permanent reply failure\n- whether failed replies should skip or fallback\n- where publish results are logged\n- anti-repetition window (for example last 48h similarity threshold)\n- idempotent slot-key design (stable fields only; never draft text)\n")
     write(root / "scripts" / "doctor.py", DOCTOR)
 
     write_json(root / "config" / "project-profile.json", {

@@ -25,8 +25,14 @@ Required:
 ## Good default live shape
 - 1 source crosspost/day if source branching is enabled
 - 1 special content crosspost/day if the user wants a second recurring content lane
-- 0-1 reply/day
-- 0-2 core posts/day
+- reply lane optional (default off unless clearly requested)
+- 0-2 core posts/day in conservative rollout
+
+High-volume profile (explicit opt-in):
+- total 10/day = 1 source + 1 special + 8 core
+- spread slots across the day
+- keep monthly hard cap explicit
+- use anti-repetition controls before enabling
 
 These are defaults, not hardcoded rules. The user may choose a different mix.
 

@@ -43,7 +43,23 @@ If a reply cannot be posted, the system should be able to continue with:
 - a normal post slot
 - or a clean skip for that window
 
-## 7. Make live mode observable
+## 7. Build idempotent slot keys
+Do not build publish de-duplication keys from mutable draft text.
+Use stable fields such as:
+- local date
+- slot name
+- kind/type
+- source URL (if any)
+- target time
+
+This prevents tiny text rewrites from bypassing de-dup and causing same-source repost loops.
+
+## 8. Add anti-repetition guardrails
+Before final slot assignment, compare candidate drafts against recent posted previews (for example last 48h).
+If similarity is high, defer that candidate and prefer a different source/angle.
+Also limit over-concentration on the same top tag in the same day.
+
+## 9. Make live mode observable
 A live system should always be able to answer:
 - what was supposed to post?
 - what actually posted?
