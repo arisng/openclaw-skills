@@ -1,11 +1,6 @@
 ---
 name: team-building
-version: 1.0.0
-description: "团建方案策划。活动规划、破冰游戏、户外拓展、远程团建、预算编制、活动反馈。Team building planner with activities, icebreakers, outdoor events, remote team-building, budgets, feedback. 团建、团队建设、拓展活动、破冰游戏。Use when planning team building events."
-author: BytesAgain <hello@bytesagain.com>
-homepage: https://bytesagain.com
-tags: [team-building, icebreaker, outdoor, remote, team, 团建, 破冰, 拓展]
-category: hr-management
+description: "团建方案策划。活动规划、破冰游戏、户外拓展、远程团建、预算编制、活动反馈。Team building planner with activities, icebreakers, outdoor events, remote team-building, budgets, feedback. 团建、团队建设、拓展活动、破冰游戏。Use when planning team building events. Triggers on: team building."
 ---
 # team-building
 
@@ -41,3 +36,6 @@ A: 主要输出Markdown格式，方便复制和编辑。
 
 ---
 *team-building by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
