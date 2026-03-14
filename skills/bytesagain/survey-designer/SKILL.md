@@ -1,9 +1,6 @@
 ---
 name: survey-designer
-version: 1.0.0
-description: "问卷设计工具。创建专业问卷、添加题型、设置逻辑跳转、数据分析、模板库、多格式导出。Survey designer with question types, skip logic, analysis, templates, and export."
-author: BytesAgain
-tags: [survey, questionnaire, research, forms, analysis, 问卷, 调研, 表单, 用户研究]
+description: "问卷设计工具。创建专业问卷、添加题型、设置逻辑跳转、数据分析、模板库、多格式导出。Survey designer with question types, skip logic, analysis, templates, and export. Use when you need survey designer capabilities. Triggers on: survey designer."
 ---
 # survey-designer
 
@@ -41,3 +38,6 @@ A: 主要输出Markdown格式，方便复制和编辑。
 
 ---
 *survey-designer by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
