@@ -1,0 +1,11 @@
+{
+  "owner": "0xautonomys",
+  "slug": "respawn",
+  "displayName": "Auto Respawn",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773267831216,
+    "commit": null
+  },
+  "history": []
+}
