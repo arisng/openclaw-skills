@@ -13,7 +13,7 @@ import ssl
 import time
 import argparse
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 CONFIG_PATH = os.path.expanduser("~/.openclaw/openclaw.json")
 CACHE_PATH = os.path.expanduser("~/.openclaw/modelpool_cache.json")
 KEYS_PATH = os.path.expanduser("~/.openclaw/modelpool_keys.json")

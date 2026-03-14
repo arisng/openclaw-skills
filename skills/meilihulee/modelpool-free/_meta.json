@@ -1,11 +1,17 @@
 {
   "owner": "meilihulee",
   "slug": "modelpool-free",
-  "displayName": "ModelPool (Free)",
+  "displayName": "Modelpool Free",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773359840248,
-    "commit": "https://github.com/openclaw/skills/commit/d1423b10dc8fb347dea21e0ddaabc61771318825"
+    "version": "1.0.2",
+    "publishedAt": 1773418518537,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773359840248,
+      "commit": "https://github.com/openclaw/skills/commit/d1423b10dc8fb347dea21e0ddaabc61771318825"
+    }
+  ]
 }

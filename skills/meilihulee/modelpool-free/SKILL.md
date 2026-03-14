@@ -1,6 +1,6 @@
 ---
 name: modelpool-free
-description: "ModelPool (Free) — Free AI model manager for OpenClaw. One command to auto-discover free models, configure multi-key rotation for multiplied free quota, build smart fallback chains, and one-click repair model issues. Prepare your OpenRouter API key(s) before install (free at openrouter.ai) and say goodbye to model anxiety forever."
+description: "ModelPool (Free) — Free AI model manager for OpenClaw. One command to auto-discover free models, configure multi-key rotation for multiplied free quota, build smart fallback chains, and one-click repair model issues. v1.0.1: Fixed security patterns (removed shell=True, killall, /proc writes). Prepare your OpenRouter API key(s) before install (free at openrouter.ai) and say goodbye to model anxiety forever."
 license: MIT
 ---
 
