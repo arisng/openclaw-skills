@@ -1,0 +1,11 @@
+{
+  "owner": "flyingtimes",
+  "slug": "twitter-command",
+  "displayName": "Twitter Cli",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773296892960,
+    "commit": null
+  },
+  "history": []
+}
