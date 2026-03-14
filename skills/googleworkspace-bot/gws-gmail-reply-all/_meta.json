@@ -1,0 +1,11 @@
+{
+  "owner": "googleworkspace-bot",
+  "slug": "gws-gmail-reply-all",
+  "displayName": "Gws Gmail Reply All",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773393354353,
+    "commit": null
+  },
+  "history": []
+}
