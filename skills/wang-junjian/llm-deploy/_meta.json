@@ -1,0 +1,11 @@
+{
+  "owner": "wang-junjian",
+  "slug": "llm-deploy",
+  "displayName": "LLM Deploy",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773370925744,
+    "commit": null
+  },
+  "history": []
+}
