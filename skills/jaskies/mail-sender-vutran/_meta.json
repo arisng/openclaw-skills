@@ -1,0 +1,11 @@
+{
+  "owner": "jaskies",
+  "slug": "mail-sender-vutran",
+  "displayName": "Mail Sender SMTP",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773285069321,
+    "commit": null
+  },
+  "history": []
+}
