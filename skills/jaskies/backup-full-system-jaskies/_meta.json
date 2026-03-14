@@ -1,0 +1,11 @@
+{
+  "owner": "jaskies",
+  "slug": "backup-full-system-jaskies",
+  "displayName": "Backup Full System",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1773318857484,
+    "commit": null
+  },
+  "history": []
+}
